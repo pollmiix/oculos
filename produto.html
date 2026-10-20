@@ -13,6 +13,10 @@
   <link rel="canonical" href="/produto.html">
   <title>Produto · Vemari Ótica</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://oticasdiniz.vtexassets.com">
+  <link rel="preconnect" href="https://d13p5wuxy0ioj8.cloudfront.net">
+  <link rel="preconnect" href="https://images2.ray-ban.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css?v=20261013c">
 </head>
@@ -40,7 +44,7 @@
     <div id="productPageContent" class="product-detail-layout" hidden>
       <section class="product-detail-gallery" aria-label="Fotos do produto">
         <div class="product-detail-image">
-          <img id="productMainImage" alt="">
+          <img id="productMainImage" alt="" fetchpriority="high" decoding="async">
         </div>
         <div class="product-detail-thumbnails" id="productThumbnails" aria-label="Outras fotos do produto"></div>
         <div class="product-demo-video" id="productDemoVideo" hidden>
@@ -48,9 +52,8 @@
             id="productDemoVideoPlayer"
             muted
             loop
-            autoplay
             playsinline
-            preload="auto"
+            preload="none"
             disablepictureinpicture
             aria-label="Vídeo de apresentação do Ray-Ban Meta"
           >
@@ -143,6 +146,6 @@
   <script src="js/catalogo-coliseu.js"></script>
   <script src="js/catalogo-painel-recuperado.js?v=20261012"></script>
   <script src="js/config.js?v=20261012d"></script>
-  <script src="js/product.js?v=20261013b"></script>
+  <script src="js/product.js?v=20261020speed"></script>
 </body>
 </html>

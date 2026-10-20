@@ -118,6 +118,9 @@ function renderizarGaleria() {
     botao.className = `product-thumbnail${indice === 0 ? " ativa" : ""}`;
     botao.setAttribute("aria-label", `Ver foto ${indice + 1} de ${fotos.length}`);
     botao.setAttribute("aria-pressed", String(indice === 0));
+    imagem.loading = "lazy";
+    imagem.decoding = "async";
+    imagem.fetchPriority = "low";
     imagem.src = foto;
     imagem.alt = "";
     botao.append(imagem);
@@ -274,7 +277,18 @@ function renderizarProduto() {
   scriptEstruturado.textContent = JSON.stringify(dadosEstruturados);
   $("#productPageContent").hidden = false;
   renderizarGaleria();
-  configurarVideoProduto();
+  const imagemPrincipal = $("#productMainImage");
+  if (imagemPrincipal.complete) {
+    configurarVideoProduto();
+  } else {
+    const iniciarVideo = () => {
+      imagemPrincipal.removeEventListener("load", iniciarVideo);
+      imagemPrincipal.removeEventListener("error", iniciarVideo);
+      configurarVideoProduto();
+    };
+    imagemPrincipal.addEventListener("load", iniciarVideo);
+    imagemPrincipal.addEventListener("error", iniciarVideo);
+  }
   renderizarProdutosRelacionados();
   window.storeAnalytics?.track("view_item", { productId: produto.id });
   atualizarSubtotal();

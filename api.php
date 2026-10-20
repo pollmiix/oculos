@@ -91,6 +91,22 @@ function db(): PDO
 
 function initialize_database(PDO $pdo, array $config): void
 {
+    // Keep table creation and housekeeping off the usual product request path.
+    // Bump this version whenever the schema below changes.
+    $schemaVersion = 'php-20261020-v1';
+    try {
+        $check = $pdo->prepare('SELECT `value`, updated_at FROM settings WHERE `key` = ?');
+        $check->execute(['php_schema_version']);
+        $installed = $check->fetch();
+        if ($installed && $installed['value'] === $schemaVersion && (int)$installed['updated_at'] > time() - 86400) {
+            return;
+        }
+    } catch (PDOException $error) {
+        if ((int)($error->errorInfo[1] ?? 0) !== 1146) {
+            throw $error;
+        }
+        // A new database has no settings table yet; initialize it below.
+    }
     $schema = [
         "CREATE TABLE IF NOT EXISTS settings (`key` VARCHAR(80) PRIMARY KEY, `value` LONGTEXT NOT NULL, updated_at BIGINT NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
         "CREATE TABLE IF NOT EXISTS admins (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, username VARCHAR(50) NOT NULL UNIQUE, password_hash VARCHAR(255) NOT NULL, role VARCHAR(20) NOT NULL DEFAULT 'owner', active TINYINT NOT NULL DEFAULT 1, created_at BIGINT NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
@@ -118,10 +134,15 @@ function initialize_database(PDO $pdo, array $config): void
         }
         $insert = $pdo->prepare('INSERT INTO admins(username,password_hash,role,created_at) VALUES(?,?,?,?)');
         $insert->execute([$username, password_hash((string)$config['admin_password'], PASSWORD_DEFAULT), 'owner', time()]);
+        $count = 1;
     }
     $retention = max(30, min(365, (int)($config['analytics_retention_days'] ?? 90)));
     $delete = $pdo->prepare('DELETE FROM events WHERE happened_at < ?');
     $delete->execute([time() - $retention * 86400]);
+    if ($count > 0) {
+        $marker = $pdo->prepare('INSERT INTO settings (`key`, `value`, updated_at) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`), updated_at = VALUES(updated_at)');
+        $marker->execute(['php_schema_version', $schemaVersion, time()]);
+    }
 }
 
 function config_value(string $key, string $default = ''): string

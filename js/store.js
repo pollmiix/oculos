@@ -1001,6 +1001,9 @@ async function confirmarPagamento() {
 }
 
 async function iniciar() {
+  const saudePendente = fetch("/api/health", { cache: "no-store" })
+    .then((response) => response.ok ? response.json() : {})
+    .catch(() => ({}));
   loja = await window.carregarLojaRemota();
   const videoCapa = $(".hero-video");
   if (videoCapa) {
@@ -1026,13 +1029,7 @@ async function iniciar() {
   if (window.matchMedia("(max-width: 760px)").matches) {
     $("#filterModels").closest("details").open = false;
   }
-  try {
-    const respostaSaude = await fetch("/api/health", { cache: "no-store" });
-    const saude = respostaSaude.ok ? await respostaSaude.json() : {};
-    gatewayConfiguradoNoServidor = saude.paymentConfigured === true;
-  } catch {
-    gatewayConfiguradoNoServidor = false;
-  }
+  gatewayConfiguradoNoServidor = (await saudePendente).paymentConfigured === true;
   carrinho = carrinho.map((item) => {
     const produto = loja.produtos.find((candidato) => candidato.id === item.id);
     return produtoTemPreco(produto)
