@@ -99,7 +99,7 @@ function initialize_database(PDO $pdo, array $config): void
         "CREATE TABLE IF NOT EXISTS events (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, event_name VARCHAR(40) NOT NULL, happened_at BIGINT NOT NULL, session_id CHAR(36) NOT NULL, page_path VARCHAR(240) NOT NULL, product_id VARCHAR(120) NULL, source VARCHAR(180) NULL, device VARCHAR(30) NULL, browser VARCHAR(30) NULL, INDEX idx_events_date (happened_at), INDEX idx_events_session (session_id), INDEX idx_events_name (event_name)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
         "CREATE TABLE IF NOT EXISTS admin_audit (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, admin_id BIGINT UNSIGNED NOT NULL, action VARCHAR(80) NOT NULL, entity VARCHAR(80) NOT NULL, entity_id VARCHAR(120) NULL, happened_at BIGINT NOT NULL, INDEX idx_audit_admin (admin_id), CONSTRAINT fk_audit_admin FOREIGN KEY (admin_id) REFERENCES admins(id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
         "CREATE TABLE IF NOT EXISTS payment_transactions (transaction_id VARCHAR(120) PRIMARY KEY, amount BIGINT NOT NULL, external_ref VARCHAR(120) NOT NULL, created_at BIGINT NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
-        "CREATE TABLE IF NOT EXISTS api_rate_limits (bucket_key CHAR(64) NOT NULL, happened_at BIGINT NOT NULL, INDEX idx_rate_bucket (bucket_key, happened_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+        "CREATE TABLE IF NOT EXISTS api_rate_limits (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, bucket_key CHAR(64) NOT NULL, happened_at BIGINT NOT NULL, INDEX idx_rate_bucket (bucket_key, happened_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
     ];
     foreach ($schema as $statement) {
         $pdo->exec($statement);
