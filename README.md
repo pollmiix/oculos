@@ -9,7 +9,7 @@ Requer Python 3.10 ou superior. O servidor usa apenas a biblioteca padrão do Py
 1. Copie `.env.example` para `.env`.
 2. Preencha `ADMIN_USERNAME` e `ADMIN_PASSWORD` com credenciais exclusivas. Use uma senha com pelo menos 12 caracteres.
 3. Execute `python server.py` na pasta do projeto.
-4. Abra `http://127.0.0.1:8000` e acesse `/admin.html` para administrar a loja.
+4. Abra `http://127.0.0.1:8000` para visualizar a loja. O painel atual está em `admin.php` e requer hospedagem PHP, conforme as instruções abaixo.
 5. Salve o catálogo no painel para sincronizá-lo com o servidor.
 
 ## Publicar a loja

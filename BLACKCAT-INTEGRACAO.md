@@ -11,7 +11,7 @@ O painel administrativo usa autenticação mantida no servidor. Antes do primeir
 - `BLACKCAT_API_KEY`: chave privada do gateway, mantida apenas no servidor.
 - `ANALYTICS_RETENTION_DAYS`: retenção dos eventos consentidos, entre 30 e 365 dias (padrão 90).
 
-Use `python server.py` para iniciar. Abra `/admin.html` pelo mesmo domínio do servidor; o acesso por `file://` não funciona. Se o banco já tiver uma conta proprietária, mudar as variáveis de ambiente não troca sua senha automaticamente.
+Use `python server.py` para iniciar a API Python. A tela atual do painel está em `/admin.php` e requer hospedagem PHP; para usá-la, siga [PHP-HOSTING.md](PHP-HOSTING.md). Se o banco já tiver uma conta proprietária, mudar as variáveis de ambiente não troca sua senha automaticamente.
 
 O SQLite fica em `.data/store.sqlite3`; mantenha essa pasta em volume persistente e inclua-a nos backups protegidos. Não envie `.env`, `.data` nem credenciais ao Git. O servidor deve estar atrás de HTTPS em produção.
 

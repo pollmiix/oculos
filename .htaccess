@@ -6,6 +6,7 @@ RewriteEngine On
 </FilesMatch>
 
 RewriteRule (^|/)\. - [F,L]
+RewriteRule ^admin\.html$ /admin.php [R=308,L]
 
 RewriteRule ^api(?:/.*)?$ api.php [QSA,L]
 RewriteRule ^merchant-feed\.xml$ api.php?feed=merchant [QSA,L]

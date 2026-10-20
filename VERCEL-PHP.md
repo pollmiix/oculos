@@ -1,6 +1,6 @@
 # PHP e MySQL na Vercel
 
-O repositório inclui `vercel.json` e `api/index.php` para executar a API com o runtime comunitário `vercel-php@0.9.0`. O painel em `/admin.php` passa a abrir `/admin.html` em vez de baixar código PHP.
+O repositório inclui `vercel.json` e `api/index.php` para executar a API com o runtime comunitário `vercel-php@0.9.0`. A tela do painel está diretamente em `/admin.php`; o antigo endereço `/admin.html` redireciona para ela.
 
 ## 1. Banco de dados
 

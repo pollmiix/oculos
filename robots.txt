@@ -2,4 +2,6 @@ User-agent: *
 Allow: /
 Disallow: /admin.html
 Disallow: /admin.php
+Disallow: /admin
+Disallow: /admin.php
 Disallow: /api/
