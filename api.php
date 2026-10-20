@@ -52,6 +52,7 @@ function db(): PDO
     if ($port === false || strpbrk((string)$config['db_host'] . (string)$config['db_name'], ";\r\n") !== false) {
         respond(503, ['error' => 'Confira o host, a porta e o nome do banco MySQL na hospedagem.']);
     }
+    $databaseConnected = false;
     try {
         $options = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES => false, PDO::ATTR_TIMEOUT => 10];
@@ -67,6 +68,7 @@ function db(): PDO
             $config['db_password'],
             $options
         );
+        $databaseConnected = true;
         initialize_database($connection, $config);
     } catch (PDOException $error) {
         error_log('Store API database initialization failed: ' . $error->getMessage());
@@ -78,7 +80,8 @@ function db(): PDO
             2002, 2003, 2005 => 'O servidor MySQL não está acessível. Confira DB_HOST, DB_PORT e as regras de rede do banco.',
             default => 'Não foi possível inicializar o MySQL. Confira as configurações e permissões do banco na hospedagem.',
         };
-        respond(503, ['error' => $message]);
+        respond(503, ['error' => $message, 'configurationCode' => 'MYSQL_' . $driverCode,
+            'configurationStage' => $databaseConnected ? 'initialization' : 'connection']);
     } catch (Throwable $error) {
         error_log('Store API database initialization failed: ' . $error->getMessage());
         respond(503, ['error' => 'Não foi possível conectar ao banco MySQL. Confira as configurações da hospedagem.']);
