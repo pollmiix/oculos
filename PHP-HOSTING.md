@@ -1,13 +1,13 @@
 # Publicação em hospedagem PHP/MySQL
 
-O Netlify não executa PHP. Para usar o painel e a loja com este backend, publique os arquivos do projeto em uma hospedagem com PHP 8.1 ou superior, Apache com `mod_rewrite`, MySQL/MariaDB e PDO MySQL. O gateway BlackCat também requer a extensão cURL do PHP.
+Para usar o painel e a loja com este backend, publique os arquivos do projeto em uma hospedagem com PHP 8.1 ou superior, Apache com `mod_rewrite`, MySQL/MariaDB e PDO MySQL. O gateway BlackCat também requer a extensão cURL do PHP. Para a Vercel, use o caminho específico de [VERCEL-PHP.md](VERCEL-PHP.md).
 
 ## Configuração
 
 1. Crie um banco MySQL e um usuário com permissões nesse banco pelo painel da hospedagem.
 2. Copie `config.local.example.php` para `config.local.php` e informe host, nome de banco, usuário e senha do MySQL. Gere `app_secret` com pelo menos 32 caracteres aleatórios e defina uma senha administrativa forte, com pelo menos 12 caracteres. Não use a senha curta que foi usada no servidor local.
 3. Se for habilitar a BlackCat, coloque a chave privada em `blackcat_api_key`. Não cadastre chaves privadas em `js/config.js` nem no GitHub.
-4. Envie os arquivos do site, incluindo `api.php` e `.htaccess`, para a raiz pública configurada no domínio. Envie `config.local.php` pelo gerenciador de arquivos ou crie-o no servidor; ele está ignorado pelo Git.
+4. Envie os arquivos do site, incluindo `api.php`, `store-config.php` e `.htaccess`, para a raiz pública configurada no domínio. Envie `config.local.php` pelo gerenciador de arquivos ou crie-o no servidor; ele está ignorado pelo Git. Preencha `public_base_url` com o domínio HTTPS definitivo para gerar os links do feed.
 5. Acesse `https://seu-dominio/api/health`. Se a configuração estiver correta, a resposta JSON informará `ok: true`. Depois, abra `https://seu-dominio/admin.php` e entre como o usuário definido em `admin_username`.
 
 As tabelas são criadas automaticamente na primeira chamada à API. A conta proprietária também é criada nessa inicialização quando o banco ainda não contém administradores. Guarde `config.local.php` fora de backups públicos e não compartilhe suas credenciais.

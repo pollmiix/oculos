@@ -1,0 +1,15 @@
+.env
+.env.*
+.data
+.venv
+venv
+__pycache__
+.git
+config.local.php
+tests
+*.sqlite
+*.sqlite3
+*.db
+*.log
+*.pem
+*.key

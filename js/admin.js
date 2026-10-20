@@ -11,12 +11,12 @@ function salvar() {
 async function lerRespostaApi(response) {
   const texto = await response.text();
   if (!texto.trim()) {
-    throw new Error("A API da loja retornou uma resposta vazia. Abra o site pelo servidor da loja (python server.py), não pelo Live Server na porta 5500.");
+    throw new Error("O servidor da loja não respondeu. Confira se a API está publicada nesta hospedagem.");
   }
   try {
     return JSON.parse(texto);
   } catch {
-    throw new Error("A API não retornou JSON válido. Confirme que o servidor da loja está rodando em http://127.0.0.1:8000.");
+    throw new Error("A API da loja não está funcionando neste endereço. Confira a configuração PHP e MySQL da hospedagem.");
   }
 }
 

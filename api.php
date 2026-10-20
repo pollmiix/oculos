@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/store-config.php';
+
 const SESSION_SECONDS = 28800;
 const MAX_BODY_SIZE = 8388608;
 const BLACKCAT_API = 'https://api.blackcatoficial.com/api';
@@ -26,21 +28,38 @@ function db(): PDO
     if ($connection instanceof PDO) {
         return $connection;
     }
-    $configPath = __DIR__ . '/config.local.php';
-    if (!is_file($configPath)) {
-        respond(503, ['error' => 'Configure o banco MySQL em config.local.php antes de usar a API.']);
+    $config = store_config();
+    $missing = [];
+    foreach (['db_host' => 'DB_HOST', 'db_name' => 'DB_NAME', 'db_user' => 'DB_USER'] as $key => $variable) {
+        if (trim((string)($config[$key] ?? '')) === '') {
+            $missing[] = $variable;
+        }
     }
-    $config = require $configPath;
-    if (!is_array($config) || !isset($config['db_host'], $config['db_name'], $config['db_user'], $config['db_password'])) {
-        respond(503, ['error' => 'A configuração MySQL do servidor está incompleta.']);
+    if (!array_key_exists('db_password', $config)) {
+        $missing[] = 'DB_PASSWORD';
+    }
+    if ($missing !== []) {
+        respond(503, ['error' => 'Configure o MySQL nas variáveis da hospedagem ou em config.local.php. Faltam: ' . implode(', ', $missing) . '.']);
+    }
+    if (strlen(trim((string)($config['app_secret'] ?? ''))) < 32) {
+        respond(503, ['error' => 'Configure APP_SECRET (ou app_secret) com pelo menos 32 caracteres aleatórios na hospedagem.']);
+    }
+    $port = filter_var($config['db_port'] ?? 3306, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 65535]]);
+    if ($port === false || strpbrk((string)$config['db_host'] . (string)$config['db_name'], ";\r\n") !== false) {
+        respond(503, ['error' => 'Confira o host, a porta e o nome do banco MySQL na hospedagem.']);
     }
     try {
+        $options = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false, PDO::ATTR_TIMEOUT => 10];
+        if (!empty($config['db_ssl_ca'])) {
+            $options[PDO::MYSQL_ATTR_SSL_CA] = (string)$config['db_ssl_ca'];
+            $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = true;
+        }
         $connection = new PDO(
-            'mysql:host=' . $config['db_host'] . ';dbname=' . $config['db_name'] . ';charset=utf8mb4',
+            'mysql:host=' . $config['db_host'] . ';port=' . $port . ';dbname=' . $config['db_name'] . ';charset=utf8mb4',
             $config['db_user'],
             $config['db_password'],
-            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES => false]
+            $options
         );
         initialize_database($connection, $config);
     } catch (Throwable $error) {
@@ -70,6 +89,9 @@ function initialize_database(PDO $pdo, array $config): void
     }
     $count = (int)$pdo->query('SELECT COUNT(*) FROM admins')->fetchColumn();
     if ($count === 0 && !empty($config['admin_password'])) {
+        if (strlen((string)$config['admin_password']) < 12) {
+            throw new RuntimeException('ADMIN_PASSWORD must contain at least 12 characters.');
+        }
         $username = trim((string)($config['admin_username'] ?? 'admin'));
         if (!preg_match('/^[A-Za-z0-9._-]{3,50}$/', $username)) {
             throw new RuntimeException('admin_username must contain 3–50 letters, digits, dots, hyphens or underscores.');
@@ -84,7 +106,7 @@ function initialize_database(PDO $pdo, array $config): void
 
 function config_value(string $key, string $default = ''): string
 {
-    $config = require __DIR__ . '/config.local.php';
+    $config = store_config();
     return trim((string)($config[$key] ?? $default));
 }
 
@@ -151,7 +173,12 @@ function send_merchant_feed(): never
     if ($store === null) {
         respond(503, ['error' => 'O catálogo ainda não foi sincronizado com o servidor.']);
     }
-    $baseUrl = 'https://vemariotica.wuaze.com';
+    $baseUrl = rtrim(config_value('public_base_url', 'https://vemariotica.wuaze.com'), '/');
+    if (!filter_var($baseUrl, FILTER_VALIDATE_URL) || parse_url($baseUrl, PHP_URL_SCHEME) !== 'https'
+        || parse_url($baseUrl, PHP_URL_USER) !== null || parse_url($baseUrl, PHP_URL_QUERY) !== null
+        || parse_url($baseUrl, PHP_URL_FRAGMENT) !== null) {
+        respond(503, ['error' => 'Configure PUBLIC_BASE_URL com o endereço HTTPS público da loja.']);
+    }
     $xml = static fn(string $value): string => htmlspecialchars($value, ENT_XML1 | ENT_COMPAT, 'UTF-8');
     header('Content-Type: application/xml; charset=utf-8');
     header('Cache-Control: public, max-age=300');

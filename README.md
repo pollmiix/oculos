@@ -18,6 +18,7 @@ O GitHub guarda o código. O GitHub Pages serve arquivos estáticos e não execu
 
 - **Python no Render:** conecte este repositório e use `render.yaml` como Blueprint. Ele configura o servidor e um disco persistente para `.data`. O serviço e o disco usam recursos pagos; confira o plano antes de criar. Informe `ADMIN_PASSWORD`, `PUBLIC_BASE_URL` com a URL pública HTTPS e, se for usar o gateway, `BLACKCAT_API_KEY` nas variáveis privadas do provedor. Para não usar o gateway, deixe sua chave vazia.
 - **PHP com MySQL:** siga [PHP-HOSTING.md](PHP-HOSTING.md). Configure `config.local.php` diretamente na hospedagem e use `/admin.php` para entrar.
+- **PHP na Vercel:** `vercel.json` configura o runtime comunitário PHP e as rotas da API. Requer um MySQL externo com acesso pela Vercel e variáveis privadas de ambiente. Siga [VERCEL-PHP.md](VERCEL-PHP.md).
 
 Depois da publicação, confira `/api/health`, entre no painel, salve o catálogo e verifique preços, estoque, entrega e pagamento antes de liberar vendas. Enviar o código ao GitHub não transfere o banco de dados nem ativa pagamentos.
 
