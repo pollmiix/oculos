@@ -32,5 +32,9 @@ function store_config(): array
             $config[$key] = $value;
         }
     }
+    $bundledCa = __DIR__ . '/certs/aiven-ca.crt';
+    if (empty($config['db_ssl_ca']) && is_file($bundledCa)) {
+        $config['db_ssl_ca'] = $bundledCa;
+    }
     return $config;
 }

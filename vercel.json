@@ -4,7 +4,7 @@
   "functions": {
     "api/index.php": {
       "runtime": "vercel-php@0.9.0",
-      "includeFiles": "{api.php,admin.php,store-config.php}"
+      "includeFiles": "{api.php,admin.php,store-config.php,certs/*.crt}"
     }
   },
   "routes": [

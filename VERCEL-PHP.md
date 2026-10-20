@@ -19,7 +19,7 @@ Na Vercel, abra o projeto da loja e vá a **Settings → Environment Variables**
 | `DB_NAME` | Nome do banco |
 | `DB_USER` | Usuário do banco |
 | `DB_PASSWORD` | Senha do banco |
-| `DB_SSL_CA` | Caminho do arquivo CA disponível no runtime, conforme o provedor; pode ser `/etc/ssl/certs/ca-certificates.crt` para certificados públicos compatíveis |
+| `DB_SSL_CA` | Opcional quando `certs/aiven-ca.crt` está incluído: o servidor usa esse certificado automaticamente. Para outro banco, informe o caminho do certificado CA do provedor disponível no runtime. |
 | `ADMIN_USERNAME` | Nome de usuário escolhido, de 3 a 50 letras, números, pontos, hífens ou sublinhados |
 | `ADMIN_PASSWORD` | Senha exclusiva com pelo menos 12 caracteres |
 | `APP_SECRET` | Segredo aleatório com pelo menos 32 caracteres |
