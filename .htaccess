@@ -1,0 +1,9 @@
+Options -Indexes
+RewriteEngine On
+
+<FilesMatch "^(config\.local\.php|config\.local\.example\.php|\.env|.*\.(sqlite|sqlite3|db))$">
+  Require all denied
+</FilesMatch>
+
+RewriteRule ^api(?:/.*)?$ api.php [QSA,L]
+RewriteRule ^merchant-feed\.xml$ api.php?feed=merchant [QSA,L]

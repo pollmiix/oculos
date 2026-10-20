@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: vemari-otica
+    runtime: python
+    plan: starter
+    buildCommand: python -m py_compile server.py database.py
+    startCommand: python server.py
+    healthCheckPath: /api/health
+    autoDeploy: true
+    disk:
+      name: loja-data
+      mountPath: /opt/render/project/src/.data
+      sizeGB: 1
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: BLACKCAT_API_KEY
+        sync: false
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ANALYTICS_RETENTION_DAYS
+        value: 90
+      - key: PUBLIC_BASE_URL
+        sync: false

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" role="img" aria-labelledby="title description">
+  <title id="title">Ilustração de óculos inteligentes</title>
+  <desc id="description">Imagem ilustrativa genérica. Substitua por uma foto autorizada do produto.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#eef4ff"/>
+      <stop offset="1" stop-color="#e8e3f5"/>
+    </linearGradient>
+    <linearGradient id="lens" x1="0" y1="0" x2="0.9" y2="1">
+      <stop offset="0" stop-color="#293b57"/>
+      <stop offset="1" stop-color="#64768c"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="480" rx="30" fill="url(#background)"/>
+  <path d="M109 201c5-20 22-34 43-34h117c26 0 43 17 48 41l6 29c5 26-13 49-40 49h-92c-22 0-37-11-46-30l-33-55c-4-6-5-13-3-20Zm422 0c-5-20-22-34-43-34H371c-26 0-43 17-48 41l-6 29c-5 26 13 49 40 49h92c22 0 37-11 46-30l33-55c4-6 5-13 3-20Z" fill="#202735" stroke="#101722" stroke-width="12" stroke-linejoin="round"/>
+  <path d="M122 196c5-12 16-18 30-18h112c15 0 25 8 29 24l7 35c4 17-7 31-25 31h-91c-13 0-22-7-28-19l-31-43c-4-4-5-7-3-10Zm396 0c-5-12-16-18-30-18H376c-15 0-25 8-29 24l-7 35c-4 17 7 31 25 31h91c13 0 22-7 28-19l31-43c4-4 5-7 3-10Z" fill="url(#lens)" opacity=".94"/>
+  <path d="M308 202c9-11 16-15 27-15s18 4 27 15" fill="none" stroke="#101722" stroke-width="12" stroke-linecap="round"/>
+  <path d="m111 191-43-22m461 22 43-22" fill="none" stroke="#101722" stroke-width="14" stroke-linecap="round"/>
+  <path d="M153 204c14-8 30-10 48-8m247 8c-14-8-30-10-48-8" fill="none" stroke="#c8d9ec" stroke-width="5" stroke-linecap="round" opacity=".7"/>
+  <rect x="126" y="356" width="388" height="54" rx="27" fill="#fff" opacity=".85"/>
+  <text x="320" y="390" fill="#30435e" font-family="Arial, sans-serif" font-size="19" font-weight="700" text-anchor="middle">IMAGEM ILUSTRATIVA · CONFIRME O MODELO</text>
+</svg>

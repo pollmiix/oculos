@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#080808">
+  <link rel="icon" type="image/png" href="imagens/vemari-logo.png">
+  <meta name="description" content="Confira fotos, descrição, preço e disponibilidade dos óculos inteligentes da loja.">
+  <meta property="og:type" content="product">
+  <meta property="og:site_name" content="Vemari Ótica">
+  <meta property="og:title" content="Produto · Vemari Ótica">
+  <meta property="og:description" content="Confira fotos, detalhes e disponibilidade do produto no catálogo Vemari Ótica.">
+  <link rel="canonical" href="/produto.html">
+  <title>Produto · Vemari Ótica</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=20261013c">
+</head>
+<body class="produto-page">
+  <header class="product-header">
+    <div class="container">
+      <a class="product-brand" href="index.html" aria-label="Voltar para a loja">
+        <img id="productLogo" src="imagens/vemari-logo-branco.png" alt="Vemari Ótica">
+        <span><strong id="productStoreName">Vemari Ótica</strong><small>Óculos inteligentes e tecnologia</small></span>
+      </a>
+      <a class="product-back-link" href="index.html#grid">← Voltar para os produtos</a>
+      <a class="product-cart-link" href="index.html?carrinho=1#grid" aria-label="Abrir carrinho">
+        <span aria-hidden="true">🛒</span> Carrinho <span class="cart-count" id="productCartCount">0</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="product-page-main container">
+    <nav class="product-breadcrumb" aria-label="Caminho da página">
+      <a href="index.html">Início</a><span aria-hidden="true">/</span>
+      <a id="productBreadcrumbCategory" href="index.html#grid">Produtos</a><span aria-hidden="true">/</span>
+      <span id="productBreadcrumbName">Produto</span>
+    </nav>
+
+    <div id="productPageContent" class="product-detail-layout" hidden>
+      <section class="product-detail-gallery" aria-label="Fotos do produto">
+        <div class="product-detail-image">
+          <img id="productMainImage" alt="">
+        </div>
+        <div class="product-detail-thumbnails" id="productThumbnails" aria-label="Outras fotos do produto"></div>
+        <div class="product-demo-video" id="productDemoVideo" hidden>
+          <video
+            id="productDemoVideoPlayer"
+            muted
+            loop
+            autoplay
+            playsinline
+            preload="auto"
+            disablepictureinpicture
+            aria-label="Vídeo de apresentação do Ray-Ban Meta"
+          >
+            <source src="rbm-pdp-aperol-d-optimized-data.mp4" type="video/mp4">
+          </video>
+        </div>
+      </section>
+
+      <section class="product-detail-info" aria-labelledby="productName">
+        <div class="product-detail-category" id="productCategory"></div>
+        <h1 id="productName"></h1>
+        <p class="product-detail-stock" id="productStock"></p>
+        <p class="product-detail-description" id="productDescription"></p>
+        <dl class="product-detail-specs" id="productSpecs" hidden></dl>
+
+        <div class="product-detail-price">
+          <strong id="productPrice"></strong>
+          <del id="productOldPrice" hidden></del>
+        </div>
+        <p class="product-price-reference" id="productPriceReference" hidden></p>
+        <p class="product-pix-note" id="productPixNote">Confira as formas disponíveis no checkout</p>
+
+        <div class="product-buy-row">
+          <div class="product-quantity">
+            <label for="productQuantity">Quantidade</label>
+            <div class="quantity-control">
+              <button type="button" id="quantityMinus" aria-label="Diminuir quantidade">−</button>
+              <input id="productQuantity" type="number" min="1" value="1" inputmode="numeric">
+              <button type="button" id="quantityPlus" aria-label="Aumentar quantidade">+</button>
+            </div>
+          </div>
+          <p class="product-subtotal">Subtotal <strong id="productSubtotal"></strong></p>
+        </div>
+
+        <div class="product-purchase-actions">
+          <button class="btn btn-verde product-buy-now-button" id="productBuyNowButton" type="button">Comprar produto</button>
+          <button class="btn product-add-button" id="productAddButton" type="button">Adicionar à sacola</button>
+        </div>
+        <p class="product-stock-warning" id="productStockWarning" hidden>Este modelo ainda não está disponível para compra.</p>
+
+        <div class="product-after-add" id="productAfterAdd" role="status" hidden>
+          <strong id="productAddedMessage">Produto adicionado ao carrinho.</strong>
+          <a class="btn btn-ouro" href="index.html?carrinho=1#grid">Ir para o carrinho e finalizar</a>
+        </div>
+
+        <div class="product-purchase-notes">
+          <p><span aria-hidden="true">✓</span> <span id="productPurchaseCheck">Confira as especificações e a disponibilidade antes de comprar.</span></p>
+          <p><span aria-hidden="true">✓</span> Revise o valor e os dados da cobrança antes de pagar.</p>
+        </div>
+
+        <div class="product-service-highlights" aria-label="Informações da compra">
+          <article>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6" width="16" height="12" rx="1"></rect><path d="M4 10h16M8 15h3"></path></svg>
+            <strong>Pagamento</strong>
+            <span>Consulte as formas habilitadas no checkout</span>
+          </article>
+          <article>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h11v10H3zM14 10h4l3 3v4h-7z"></path><circle cx="7" cy="19" r="1.5"></circle><circle cx="17" cy="19" r="1.5"></circle></svg>
+            <strong>Entrega combinada</strong>
+            <span>Prazo e valor a combinar</span>
+          </article>
+        </div>
+      </section>
+    </div>
+
+    <section class="related-products-section" id="relatedProductsSection" aria-labelledby="relatedProductsTitle" data-reveal hidden>
+      <div class="related-products-heading">
+        <p class="section-kicker">Continue explorando</p>
+        <h2 id="relatedProductsTitle">Outros modelos</h2>
+      </div>
+      <div class="related-products-grid" id="relatedProductsGrid"></div>
+    </section>
+
+    <section id="productNotFound" class="product-not-found" hidden>
+      <span aria-hidden="true">🕶️</span>
+      <h1>Não encontramos esse produto</h1>
+      <p>Ele pode ter sido removido ou o link pode estar incorreto.</p>
+      <a class="btn btn-verde" href="index.html#grid">Voltar para a loja</a>
+    </section>
+  </main>
+
+  <footer class="rodape product-footer">
+    <div class="container">
+      <div><strong id="productFooterName">Vemari Ótica</strong><p>Vemari Otica LTDA · CNPJ 04.131.872/0001-40</p></div>
+      <div><a href="contato.html">Contato</a><a href="entrega.html">Entrega</a><a href="trocas-e-devolucoes.html">Trocas e devoluções</a><a href="privacidade.html">Privacidade</a><a href="termos-de-uso.html">Termos de uso</a></div>
+    </div>
+  </footer>
+
+  <script src="js/analytics.js?v=20261013b"></script>
+  <script src="js/catalogo-coliseu.js"></script>
+  <script src="js/catalogo-painel-recuperado.js?v=20261012"></script>
+  <script src="js/config.js?v=20261012d"></script>
+  <script src="js/product.js?v=20261013b"></script>
+</body>
+</html>

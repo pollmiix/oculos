@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 520" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="82" y1="30" x2="1517" y2="520" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#15142E"/>
+      <stop offset=".55" stop-color="#39266E"/>
+      <stop offset="1" stop-color="#7945B8"/>
+    </linearGradient>
+    <linearGradient id="card" x1="1130" y1="120" x2="1440" y2="460" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF7D5"/>
+      <stop offset="1" stop-color="#FFD75A"/>
+    </linearGradient>
+    <pattern id="sparkles" width="74" height="74" patternUnits="userSpaceOnUse">
+      <path d="M16 10v14M9 17h14M56 48v10M51 53h10" stroke="#FFF2B0" stroke-opacity=".2" stroke-width="2"/>
+      <circle cx="38" cy="33" r="2" fill="#FFF2B0" fill-opacity=".28"/>
+    </pattern>
+  </defs>
+  <path fill="url(#bg)" d="M0 0h1600v520H0z"/>
+  <path fill="url(#sparkles)" d="M0 0h1600v520H0z"/>
+  <circle cx="1323" cy="267" r="250" fill="#F5C83D" fill-opacity=".1"/>
+  <circle cx="1323" cy="267" r="198" stroke="#FFD957" stroke-opacity=".35" stroke-width="2"/>
+  <circle cx="1323" cy="267" r="155" stroke="#FFD957" stroke-opacity=".22" stroke-width="2"/>
+  <path d="m1145 99 33 27-28 22-35-28 30-21ZM1488 381l30 24-28 22-31-25 29-21Z" fill="#F16A62"/>
+  <g transform="rotate(-13 1268 258)">
+    <rect x="1123" y="113" width="221" height="310" rx="22" fill="#0E1024" fill-opacity=".36"/>
+    <rect x="1110" y="101" width="221" height="310" rx="22" fill="#F3F0FA"/>
+    <rect x="1126" y="118" width="189" height="228" rx="14" fill="#5B48A3"/>
+    <path d="m1220 155 20 48 50 3-39 31 13 49-44-27-43 27 12-49-39-31 51-3 19-48Z" fill="#FFD957"/>
+    <path d="M1141 365h142M1141 383h96" stroke="#C7BDD8" stroke-linecap="round" stroke-width="8"/>
+  </g>
+  <g transform="rotate(10 1393 270)">
+    <rect x="1297" y="127" width="221" height="310" rx="22" fill="#F3F0FA"/>
+    <rect x="1313" y="144" width="189" height="228" rx="14" fill="#F16A62"/>
+    <path d="m1408 180 20 48 50 3-39 31 13 49-44-27-43 27 12-49-39-31 51-3 19-48Z" fill="#FFF3BB"/>
+    <path d="M1328 391h142M1328 409h96" stroke="#C7BDD8" stroke-linecap="round" stroke-width="8"/>
+  </g>
+  <path d="M0 454c260-80 459-79 681-28 203 47 359 52 554-9 135-42 250-49 365-23v126H0V454Z" fill="#101127" fill-opacity=".42"/>
+  <path d="M0 502h780" stroke="#FFD957" stroke-width="7"/>
+  <circle cx="794" cy="502" r="12" fill="#FFD957"/>
+</svg>
