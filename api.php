@@ -1,6 +1,10 @@
 <?php
 declare(strict_types=1);
 
+// Keep diagnostics in server logs so warnings cannot corrupt JSON responses.
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+
 require_once __DIR__ . '/store-config.php';
 
 const SESSION_SECONDS = 28800;
@@ -52,8 +56,10 @@ function db(): PDO
         $options = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES => false, PDO::ATTR_TIMEOUT => 10];
         if (!empty($config['db_ssl_ca'])) {
-            $options[PDO::MYSQL_ATTR_SSL_CA] = (string)$config['db_ssl_ca'];
-            $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = true;
+            $sslCaOption = class_exists('Pdo\\Mysql') ? \Pdo\Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA;
+            $sslVerifyOption = class_exists('Pdo\\Mysql') ? \Pdo\Mysql::ATTR_SSL_VERIFY_SERVER_CERT : PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT;
+            $options[$sslCaOption] = (string)$config['db_ssl_ca'];
+            $options[$sslVerifyOption] = true;
         }
         $connection = new PDO(
             'mysql:host=' . $config['db_host'] . ';port=' . $port . ';dbname=' . $config['db_name'] . ';charset=utf8mb4',
@@ -62,6 +68,17 @@ function db(): PDO
             $options
         );
         initialize_database($connection, $config);
+    } catch (PDOException $error) {
+        error_log('Store API database initialization failed: ' . $error->getMessage());
+        $driverCode = (int)($error->errorInfo[1] ?? 0);
+        $message = match ($driverCode) {
+            1045 => 'O MySQL recusou o usuário ou a senha. Confira DB_USER e DB_PASSWORD na Vercel e copie a senha atual da Aiven.',
+            1049 => 'O banco informado em DB_NAME não existe nesse servidor MySQL.',
+            2026 => 'Não foi possível validar a conexão TLS do MySQL. Confira o certificado CA configurado.',
+            2002, 2003, 2005 => 'O servidor MySQL não está acessível. Confira DB_HOST, DB_PORT e as regras de rede do banco.',
+            default => 'Não foi possível inicializar o MySQL. Confira as configurações e permissões do banco na hospedagem.',
+        };
+        respond(503, ['error' => $message]);
     } catch (Throwable $error) {
         error_log('Store API database initialization failed: ' . $error->getMessage());
         respond(503, ['error' => 'Não foi possível conectar ao banco MySQL. Confira as configurações da hospedagem.']);
@@ -90,11 +107,11 @@ function initialize_database(PDO $pdo, array $config): void
     $count = (int)$pdo->query('SELECT COUNT(*) FROM admins')->fetchColumn();
     if ($count === 0 && !empty($config['admin_password'])) {
         if (strlen((string)$config['admin_password']) < 12) {
-            throw new RuntimeException('ADMIN_PASSWORD must contain at least 12 characters.');
+            respond(503, ['error' => 'Configure ADMIN_PASSWORD com pelo menos 12 caracteres para criar a conta do painel.']);
         }
         $username = trim((string)($config['admin_username'] ?? 'admin'));
         if (!preg_match('/^[A-Za-z0-9._-]{3,50}$/', $username)) {
-            throw new RuntimeException('admin_username must contain 3–50 letters, digits, dots, hyphens or underscores.');
+            respond(503, ['error' => 'Configure ADMIN_USERNAME com 3 a 50 letras, números, pontos, hífens ou sublinhados.']);
         }
         $insert = $pdo->prepare('INSERT INTO admins(username,password_hash,role,created_at) VALUES(?,?,?,?)');
         $insert->execute([$username, password_hash((string)$config['admin_password'], PASSWORD_DEFAULT), 'owner', time()]);
