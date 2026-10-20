@@ -146,7 +146,6 @@ function renderTopo() {
   $("#checkoutBrandName").textContent = loja.loja.nome;
   $("#nomeLoja").textContent = loja.loja.nome;
   $("#sloganLoja").textContent = loja.loja.slogan;
-  $("#bannerImg").src = loja.loja.banner;
   $("#topTelefone").textContent = loja.loja.telefone;
   $("#topHorario").textContent = loja.loja.horario;
   $("#footerLogo").src = logoEmFundoEscuro;
