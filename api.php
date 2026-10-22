@@ -7,6 +7,8 @@ ini_set('log_errors', '1');
 
 require_once __DIR__ . '/store-config.php';
 require_once __DIR__ . '/merchant-images.php';
+require_once __DIR__ . '/product-identifiers.php';
+require_once __DIR__ . '/store-policies.php';
 
 const SESSION_SECONDS = 28800;
 const MAX_BODY_SIZE = 8388608;
@@ -215,6 +217,7 @@ function send_merchant_feed(): never
     if ($store === null) {
         respond(503, ['error' => 'O catálogo ainda não foi sincronizado com o servidor.']);
     }
+    $store = safe_store($store);
     $baseUrl = rtrim(config_value('public_base_url', 'https://vemariotica.online'), '/');
     if (!filter_var($baseUrl, FILTER_VALIDATE_URL) || parse_url($baseUrl, PHP_URL_SCHEME) !== 'https'
         || parse_url($baseUrl, PHP_URL_USER) !== null || parse_url($baseUrl, PHP_URL_QUERY) !== null
@@ -263,7 +266,7 @@ function send_merchant_feed(): never
         $link = $baseUrl . '/produto.html?id=' . rawurlencode($id);
         $stock = filter_var($product['estoque'] ?? 0, FILTER_VALIDATE_INT);
         $availability = $stock !== false && $stock > 0 ? 'in_stock' : 'out_of_stock';
-        $brand = trim((string)($product['marca'] ?? $product['brand'] ?? ''));
+        $identifiers = product_identifiers($product);
         echo '<item>';
         echo '<g:id>' . $xml($id) . '</g:id>';
         echo '<g:title>' . $xml($title) . '</g:title>';
@@ -290,13 +293,18 @@ function send_merchant_feed(): never
         echo '<g:availability>' . $availability . '</g:availability>';
         echo '<g:price>' . number_format($priceCents / 100, 2, '.', '') . ' BRL</g:price>';
         echo '<g:condition>new</g:condition>';
-        if ($brand !== '') {
-            echo '<g:brand>' . $xml($brand) . '</g:brand>';
-        } else {
+        echo '<g:shipping><g:country>BR</g:country><g:service>Entrega padrão</g:service><g:price>0.00 BRL</g:price></g:shipping>';
+        if ($identifiers['brand'] !== '') {
+            echo '<g:brand>' . $xml($identifiers['brand']) . '</g:brand>';
+        }
+        if ($identifiers['gtin'] !== '') {
+            echo '<g:gtin>' . $xml($identifiers['gtin']) . '</g:gtin>';
+        }
+        if ($identifiers['identifier_exists'] === false) {
             echo '<g:identifier_exists>false</g:identifier_exists>';
         }
-        if (!empty($product['sku'])) {
-            echo '<g:mpn>' . $xml((string)$product['sku']) . '</g:mpn>';
+        if ($identifiers['mpn'] !== '') {
+            echo '<g:mpn>' . $xml($identifiers['mpn']) . '</g:mpn>';
         }
         echo '</item>';
     }
@@ -306,6 +314,7 @@ function send_merchant_feed(): never
 
 function safe_store(array $store): array
 {
+    $store = confirmed_store_policies($store);
     unset($store['senhaAdmin']);
     if (isset($store['pagamento']['gateway']) && is_array($store['pagamento']['gateway'])) {
         foreach (array_keys($store['pagamento']['gateway']) as $key) {
@@ -317,6 +326,21 @@ function safe_store(array $store): array
                 }
             }
         }
+    }
+    if (isset($store['produtos']) && is_array($store['produtos'])) {
+        foreach ($store['produtos'] as &$product) {
+            if (is_array($product)) {
+                $identifiers = product_identifiers($product);
+                if ($identifiers['brand'] !== '') {
+                    $product['marca'] = $identifiers['brand'];
+                }
+                $product['descricao'] = confirmed_product_description($product);
+                if (!empty($product['gtin']) && $identifiers['gtin'] === '') {
+                    unset($product['gtin']);
+                }
+            }
+        }
+        unset($product);
     }
     return $store;
 }
@@ -726,6 +750,12 @@ function route_request(): void
         }
         if (count($value['produtos']) > 500) {
             throw new InvalidArgumentException('O catálogo excede o limite de produtos do servidor.');
+        }
+        foreach ($value['produtos'] as $product) {
+            $gtin = trim((string)($product['gtin'] ?? ''));
+            if ($gtin !== '' && !valid_product_gtin($gtin)) {
+                throw new InvalidArgumentException('Informe um GTIN/EAN válido do fabricante ou deixe o campo vazio.');
+            }
         }
         if (isset($value['pagamento']) && (!is_array($value['pagamento']) || !in_array($value['pagamento']['metodo'] ?? null, ['pix', 'gateway'], true))) {
             throw new InvalidArgumentException('Escolha PIX ou gateway como forma de pagamento.');

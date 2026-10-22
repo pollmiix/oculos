@@ -37,7 +37,7 @@ function montarEspecificacoesProduto() {
 
   const referencia = $("#productPriceReference");
   if (produtoTemPreco(produto)) {
-    referencia.textContent = "Preço informado no catálogo. Confirme o valor e a disponibilidade antes de concluir a compra.";
+    referencia.textContent = "Frete grátis para todo o Brasil. Entrega em até 7 dias úteis após a confirmação do pagamento.";
     referencia.hidden = false;
     $("#productPixNote").textContent = window.temDescontoPix(produto)
       ? "20% de desconto aplicado para pagamento via Pix."
@@ -50,26 +50,6 @@ function montarEspecificacoesProduto() {
     referencia.hidden = true;
   }
 
-  if (produto.paginaOrigem) {
-    try {
-      const origem = new URL(produto.paginaOrigem);
-      if (origem.protocol === "https:") {
-        const dt = document.createElement("dt");
-        const dd = document.createElement("dd");
-        const link = document.createElement("a");
-        dt.textContent = "Página de referência";
-        link.href = origem.href;
-        link.target = "_blank";
-        link.rel = "noreferrer";
-        link.textContent = "Ver página de referência";
-        dd.append(link);
-        specs.append(dt, dd);
-        specs.hidden = false;
-      }
-    } catch (erro) {
-      console.error("O link de referência deste produto não é válido.", erro);
-    }
-  }
 }
 
 function lerCarrinho() {
@@ -265,7 +245,26 @@ function renderizarProduto() {
     description: produto.descricao,
     category: produto.categoria,
     image: [produto.imagem, ...(Array.isArray(produto.imagens) ? produto.imagens : [])].filter(Boolean),
-    ...(produto.sku ? { sku: produto.sku } : {})
+    ...(produto.sku ? { sku: produto.sku } : {}),
+    ...(produto.marca ? { brand: { "@type": "Brand", name: produto.marca } } : {}),
+    ...(produto.gtin ? { gtin: produto.gtin } : {}),
+    ...(produto.mpn ? { mpn: produto.mpn } : {}),
+    ...(temPreco ? {
+      offers: {
+        "@type": "Offer",
+        url: urlCanonica.href,
+        priceCurrency: "BRL",
+        price: window.precoComDescontoPix(produto),
+        availability: Number(produto.estoque) > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+        itemCondition: "https://schema.org/NewCondition",
+        shippingDetails: {
+          "@type": "OfferShippingDetails",
+          shippingRate: { "@type": "MonetaryAmount", value: 0, currency: "BRL" },
+          shippingDestination: { "@type": "DefinedRegion", addressCountry: "BR" }
+        },
+        seller: { "@type": "Organization", name: nomeLoja }
+      }
+    } : {})
   };
   let scriptEstruturado = document.getElementById("productStructuredData");
   if (!scriptEstruturado) {

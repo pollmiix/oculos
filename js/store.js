@@ -991,7 +991,7 @@ async function confirmarPagamento() {
       `CEP: ${pedidoAtual.cliente.cep}`,
       "",
       `Total dos produtos: ${dinheiro(pedidoAtual.total)}.`,
-      "Frete e prazo de entrega a combinar."
+      "Frete grátis para todo o Brasil. Entrega em até 7 dias úteis após a confirmação do pagamento."
     ].filter(Boolean).join("\n")
   );
   $("#waPedido").href = `https://wa.me/${loja.loja.whatsapp}?text=${texto}`;

@@ -1,7 +1,7 @@
 Options -Indexes
 RewriteEngine On
 
-<FilesMatch "^(merchant-images\.php|store-config\.php|config\.local\.php|config\.local\.example\.php|\.env(?:\..*)?|.*\.(sqlite|sqlite3|db|py|md|ya?ml))$">
+<FilesMatch "^(store-policies\.php|product-identifiers\.php|merchant-images\.php|store-config\.php|config\.local\.php|config\.local\.example\.php|\.env(?:\..*)?|.*\.(sqlite|sqlite3|db|py|md|ya?ml))$">
   Require all denied
 </FilesMatch>
 

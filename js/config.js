@@ -16,8 +16,8 @@ window.LOJA_PADRAO = {
   pix: {
     chave: "",
     tipo: "CNPJ",
-    nomeRecebedor: "",
-    cidade: "",
+    nomeRecebedor: "Vemari Otica LTDA",
+    cidade: "São Paulo",
     mensagem: "Pedido Vemari Ótica"
   },
   pagamento: {
@@ -475,7 +475,6 @@ window.precoComDescontoPix = function (produto) {
 };
 
 const VERSAO_PRODUTOS_COMPLEMENTARES = 9;
-const VERSAO_ESTOQUE_INICIAL = 1;
 
 window.aplicarProdutosComplementares = function (catalogo) {
   const resultado = {
@@ -542,12 +541,6 @@ window.aplicarProdutosComplementares = function (catalogo) {
     if (!produto.publico) produto.publico = "Não informado";
   });
   const catalogoRecuperado = window.aplicarProdutosPainelRecuperados(resultado);
-  if ((Number(catalogoRecuperado.versaoEstoqueInicial) || 0) < VERSAO_ESTOQUE_INICIAL) {
-    catalogoRecuperado.produtos.forEach((produto) => {
-      produto.estoque = 13;
-    });
-    catalogoRecuperado.versaoEstoqueInicial = VERSAO_ESTOQUE_INICIAL;
-  }
   catalogoRecuperado.versaoProdutosComplementares = VERSAO_PRODUTOS_COMPLEMENTARES;
   return catalogoRecuperado;
 };
@@ -706,7 +699,7 @@ window.carregarLojaRemota = async function () {
   if (window.location.protocol === "file:") return local;
   try {
     const response = await fetch("/api/store", { cache: "no-store" });
-    if (response.status === 404) return local;
+    if (response.status === 404) throw new Error("Catálogo indisponível.");
     if (!response.ok) throw new Error(`O servidor respondeu ${response.status}.`);
     const dados = await response.json();
     const catalogoComServidor = {
@@ -758,9 +751,13 @@ window.carregarLojaRemota = async function () {
     if (catalogoComServidor.loja.banner === "imagens/banner.svg") {
       catalogoComServidor.loja.banner = window.LOJA_PADRAO.loja.banner;
     }
-    return window.aplicarCatalogoSomenteOculos(window.aplicarProdutosComplementares(catalogoComServidor));
+    // Published products and stock come from the server. Do not re-import
+    // removed products or overwrite inventory with a restored sample catalog.
+    catalogoComServidor.produtos = Array.isArray(dados.produtos) ? dados.produtos : [];
+    return window.aplicarCatalogoSomenteOculos(catalogoComServidor);
   } catch (erro) {
     console.error("Não foi possível carregar a configuração compartilhada da loja.", erro);
-    return local;
+    // Never offer a restored sample catalog when the live inventory is unavailable.
+    return { ...local, produtos: [] };
   }
 };

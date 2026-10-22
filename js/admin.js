@@ -441,6 +441,9 @@ function renderProdutos() {
             </select>
           </label>
           <div class="grid2">
+            <label>Marca do fabricante<input data-p="${index}" data-k="marca" value="${esc(product.marca || product.brand || "")}"></label>
+            <label>GTIN / EAN do fabricante<input data-p="${index}" data-k="gtin" inputmode="numeric" value="${esc(product.gtin || "")}" placeholder="Somente se informado pelo fabricante"></label>
+            <label>MPN / código do fabricante<input data-p="${index}" data-k="mpn" value="${esc(product.mpn || "")}" placeholder="Não use um código inventado"></label>
             <label>Preço<input type="number" step="0.01" data-p="${index}" data-k="preco" value="${product.preco}"></label>
             <label>Preço antigo<input type="number" step="0.01" data-p="${index}" data-k="antigo" value="${product.antigo || 0}"></label>
             <label>Estoque<input type="number" data-p="${index}" data-k="estoque" value="${product.estoque}"></label>
