@@ -214,7 +214,7 @@ function send_merchant_feed(): never
     if ($store === null) {
         respond(503, ['error' => 'O catálogo ainda não foi sincronizado com o servidor.']);
     }
-    $baseUrl = rtrim(config_value('public_base_url', 'https://vemariotica.wuaze.com'), '/');
+    $baseUrl = rtrim(config_value('public_base_url', 'https://vemariotica.online'), '/');
     if (!filter_var($baseUrl, FILTER_VALIDATE_URL) || parse_url($baseUrl, PHP_URL_SCHEME) !== 'https'
         || parse_url($baseUrl, PHP_URL_USER) !== null || parse_url($baseUrl, PHP_URL_QUERY) !== null
         || parse_url($baseUrl, PHP_URL_FRAGMENT) !== null) {

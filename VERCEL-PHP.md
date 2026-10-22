@@ -23,7 +23,7 @@ Na Vercel, abra o projeto da loja e vá a **Settings → Environment Variables**
 | `ADMIN_USERNAME` | Nome de usuário escolhido, de 3 a 50 letras, números, pontos, hífens ou sublinhados |
 | `ADMIN_PASSWORD` | Senha exclusiva com pelo menos 12 caracteres |
 | `APP_SECRET` | Segredo aleatório com pelo menos 32 caracteres |
-| `PUBLIC_BASE_URL` | `https://oculos-two.vercel.app` ou seu domínio definitivo |
+| `PUBLIC_BASE_URL` | `https://vemariotica.online` |
 | `ANALYTICS_RETENTION_DAYS` | `90` |
 | `BLACKCAT_API_KEY` | Opcional: chave privada do gateway, somente se for usá-lo |
 
