@@ -6,6 +6,7 @@ ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 
 require_once __DIR__ . '/store-config.php';
+require_once __DIR__ . '/merchant-images.php';
 
 const SESSION_SECONDS = 28800;
 const MAX_BODY_SIZE = 8388608;
@@ -242,13 +243,21 @@ function send_merchant_feed(): never
         } catch (InvalidArgumentException) {
             continue;
         }
-        if ($id === '' || $title === '' || $image === '' || $priceCents < 1) {
+        if ($id === '' || $title === '' || $priceCents < 1) {
             continue;
         }
-        if (str_starts_with($image, '/')) {
-            $image = $baseUrl . $image;
+        $image = merchant_image_url($image, $baseUrl);
+        if ($image === null) {
+            foreach ($additionalImages as $candidate) {
+                if (is_string($candidate)) {
+                    $image = merchant_image_url($candidate, $baseUrl);
+                    if ($image !== null) {
+                        break;
+                    }
+                }
+            }
         }
-        if (!filter_var($image, FILTER_VALIDATE_URL) || strtolower((string)parse_url($image, PHP_URL_SCHEME)) !== 'https') {
+        if ($image === null) {
             continue;
         }
         $link = $baseUrl . '/produto.html?id=' . rawurlencode($id);
@@ -267,16 +276,8 @@ function send_merchant_feed(): never
             if (!is_string($additionalImage)) {
                 continue;
             }
-            $additionalImage = trim($additionalImage);
-            if ($additionalImage === '') {
-                continue;
-            }
-            if (str_starts_with($additionalImage, '/')) {
-                $additionalImage = $baseUrl . $additionalImage;
-            }
-            if (isset($seenImages[$additionalImage])
-                || !filter_var($additionalImage, FILTER_VALIDATE_URL)
-                || strtolower((string)parse_url($additionalImage, PHP_URL_SCHEME)) !== 'https') {
+            $additionalImage = merchant_image_url($additionalImage, $baseUrl);
+            if ($additionalImage === null || isset($seenImages[$additionalImage])) {
                 continue;
             }
             echo '<g:additional_image_link>' . $xml($additionalImage) . '</g:additional_image_link>';
