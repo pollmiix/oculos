@@ -3,7 +3,7 @@ declare(strict_types=1);
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 require dirname(__DIR__) . '/store-pricing.php';
 $prices = json_decode(file_get_contents(dirname(__DIR__) . '/female-product-prices.json'), true, 512, JSON_THROW_ON_ERROR);
-if (count($prices) !== 53 || count(array_unique($prices)) !== 53 || min($prices) !== 468.86 || max($prices) !== 501.65) {
+if (count($prices) !== 53 || count(array_unique($prices)) !== 53 || min($prices) !== 187.98 || max($prices) !== 217.65) {
     throw new RuntimeException('Expected 53 distinct prices within the requested range.');
 }
 $products = [];
@@ -12,7 +12,7 @@ foreach ($prices as $id => $price) {
 }
 $other = ['id' => 'smart', 'categoria' => 'Óculos inteligentes', 'preco' => 1500, 'precoPix' => 1275, 'estoque' => 2];
 $products[] = $other;
-$result = female_product_prices(['produtos' => $products]);
+$result = female_product_prices(['versaoPrecosFemininos' => 1, 'produtos' => $products]);
 foreach ($result['produtos'] as $i => $product) {
     if ($i === 53) {
         if ($product !== $other) throw new RuntimeException('Other collections must remain unchanged.');

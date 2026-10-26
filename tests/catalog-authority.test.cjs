@@ -113,7 +113,7 @@ vm.runInContext(fs.readFileSync(path.join(__dirname, '../js/config.js'), 'utf8')
     assert.equal(product.precoPix, context.precoComDescontoPix(product));
   }
   assert.equal(context.percentualDescontoPixProduto(smartDefaults[0]), 10);
-  savedStore = JSON.stringify({ versaoReducaoPrecos: 2, categorias: ['Todos'], produtos: femaleDefaults.map(p => ({ ...p, preco: 999, precoPix: 999, aplicarDescontoPix: false })) });
+  savedStore = JSON.stringify({ versaoReducaoPrecos: 2, versaoPrecosFemininos: 1, categorias: ['Todos'], produtos: femaleDefaults.map(p => ({ ...p, preco: 999, precoPix: 999, aplicarDescontoPix: false })) });
   for (let reload = 0; reload < 2; reload++) {
     const females = context.carregarLojaConfigurada().produtos.filter(p => p.categoria === 'Armações femininas');
     assert.equal(females.length, 53);
