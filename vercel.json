@@ -4,7 +4,7 @@
   "functions": {
     "api/index.php": {
       "runtime": "vercel-php@0.9.0",
-      "includeFiles": "{api.php,admin.php,store-config.php,merchant-images.php,product-identifiers.php,store-policies.php,store-pricing.php,smart-product-prices.json,certs/*.crt}"
+      "includeFiles": "{api.php,admin.php,store-config.php,merchant-images.php,product-identifiers.php,store-policies.php,store-pricing.php,smart-product-prices.json,female-product-prices.json,certs/*.crt}"
     }
   },
   "routes": [

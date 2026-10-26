@@ -181,8 +181,9 @@ def money_in_cents(value):
 
 def pix_price_in_cents(product):
     price_cents = money_in_cents(product.get("preco") if isinstance(product, dict) else product)
-    if isinstance(product, dict) and product.get("categoria") == "Óculos inteligentes" and product.get("aplicarDescontoPix") is not False:
-        return int((Decimal(price_cents) * Decimal("0.85")).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+    if isinstance(product, dict) and product.get("aplicarDescontoPix") is not False:
+        discount = {"Óculos inteligentes": 15, "Armações femininas": 10}.get(product.get("categoria"), 0)
+        return int((Decimal(price_cents) * Decimal(100 - discount) / 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
     return price_cents
 
 

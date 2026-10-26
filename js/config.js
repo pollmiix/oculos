@@ -2,6 +2,7 @@ window.LOJA_PADRAO = {
   versaoReducaoPrecos: 2,
   versaoPrecosInteligentes: 1,
   versaoDescontoPixInteligentes: 1,
+  versaoPrecosFemininos: 1,
   versaoCatalogo: 3,
   loja: {
     nome: "Vemari Ótica",
@@ -481,15 +482,21 @@ window.aplicarProdutosPainelRecuperados = function (catalogo) {
 window.LOJA_PADRAO = window.aplicarProdutosPainelRecuperados(window.LOJA_PADRAO);
 
 window.percentualDescontoPix = 15;
+window.percentualDescontoPixProduto = function (produto) {
+  if (!produto || produto.aplicarDescontoPix === false) return 0;
+  if (produto.categoria === "Óculos inteligentes") return 15;
+  if (produto.categoria === "Armações femininas") return 10;
+  return 0;
+};
 window.temDescontoPix = function (produto) {
-  return produto?.categoria === "Óculos inteligentes" && produto.aplicarDescontoPix !== false;
+  return window.percentualDescontoPixProduto(produto) > 0;
 };
 window.precoComDescontoPix = function (produto) {
   if (typeof produto.preco !== "number" || !Number.isFinite(produto.preco) || produto.preco <= 0) {
     return null;
   }
   return window.temDescontoPix(produto)
-    ? Math.round(produto.preco * (1 - window.percentualDescontoPix / 100) * 100) / 100
+    ? Math.round(produto.preco * (100 - window.percentualDescontoPixProduto(produto))) / 100
     : produto.preco;
 };
 
@@ -640,6 +647,20 @@ window.carregarLojaConfigurada = function () {
       });
     }
     dadosSalvos.versaoDescontoPixInteligentes = 1;
+    localStorage.setItem(chave, JSON.stringify(dadosSalvos));
+  }
+
+  if ((Number(dadosSalvos.versaoPrecosFemininos) || 0) < 1) {
+    const precos = new Map(window.LOJA_PADRAO.produtos.filter(p => p.categoria === "Armações femininas").map(p => [String(p.id), p.preco]));
+    if (Array.isArray(dadosSalvos.produtos)) {
+      dadosSalvos.produtos.forEach((produto) => {
+        const preco = precos.get(String(produto.id));
+        if (preco === undefined || produto.categoria !== "Armações femininas") return;
+        Object.assign(produto, { preco, precoPromocional: preco, aplicarDescontoPix: true });
+        produto.precoPix = window.precoComDescontoPix(produto);
+      });
+    }
+    dadosSalvos.versaoPrecosFemininos = 1;
     localStorage.setItem(chave, JSON.stringify(dadosSalvos));
   }
 
