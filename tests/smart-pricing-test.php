@@ -25,6 +25,18 @@ foreach ($result['produtos'] as $i => $product) {
         throw new RuntimeException('Final prices, stock and original prices must be preserved.');
     }
 }
+$discounted = smart_product_pix_discount($result);
+foreach ($discounted['produtos'] as $i => $product) {
+    if ($i === 16) {
+        if ($product !== $other) throw new RuntimeException('Other collections must not receive the Pix discount.');
+        continue;
+    }
+    if ($product['preco'] !== $result['produtos'][$i]['preco'] || $product['aplicarDescontoPix'] !== true
+        || $product['precoPix'] !== round($product['preco'] * 0.85, 2, PHP_ROUND_HALF_UP)) {
+        throw new RuntimeException('Pix discount must be 15% while preserving the base price.');
+    }
+}
+if (smart_product_pix_discount($discounted) !== $discounted) throw new RuntimeException('Pix migration must be idempotent.');
 $result['produtos'][0]['preco'] = 1500;
 if (fixed_smart_product_prices($result) !== $result) {
     throw new RuntimeException('Repeated migration must preserve subsequent admin edits.');

@@ -212,7 +212,7 @@ function store_value(): ?array
     if (!is_array($store)) {
         return null;
     }
-    if ((int)($store['versaoReducaoPrecos'] ?? 0) >= 2 && (int)($store['versaoPrecosInteligentes'] ?? 0) >= 1) {
+    if ((int)($store['versaoReducaoPrecos'] ?? 0) >= 2 && (int)($store['versaoPrecosInteligentes'] ?? 0) >= 1 && (int)($store['versaoDescontoPixInteligentes'] ?? 0) >= 1) {
         return $store;
     }
 
@@ -224,10 +224,10 @@ function store_value(): ?array
         $query->execute(['store']);
         $original = $query->fetchColumn();
         $store = $original === false ? null : json_decode((string)$original, true);
-        if (is_array($store) && ((int)($store['versaoReducaoPrecos'] ?? 0) < 2 || (int)($store['versaoPrecosInteligentes'] ?? 0) < 1)) {
+        if (is_array($store) && ((int)($store['versaoReducaoPrecos'] ?? 0) < 2 || (int)($store['versaoPrecosInteligentes'] ?? 0) < 1 || (int)($store['versaoDescontoPixInteligentes'] ?? 0) < 1)) {
             $backup = $pdo->prepare('INSERT IGNORE INTO settings (`key`, `value`, updated_at) VALUES (?, ?, ?)');
-            $backup->execute(['store_before_smart_prices_20261026', $original, time()]);
-            $store = fixed_smart_product_prices(reduced_store_prices($store));
+            $backup->execute(['store_before_smart_pix15_20261026', $original, time()]);
+            $store = smart_product_pix_discount(fixed_smart_product_prices(reduced_store_prices($store)));
             $update = $pdo->prepare('UPDATE settings SET `value`=?, updated_at=? WHERE `key`=?');
             $update->execute([json_encode($store, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), time(), 'store']);
         }
@@ -444,7 +444,7 @@ function pix_price_cents(array $product): int
 {
     $price = money_cents($product['preco'] ?? null);
     return ($product['categoria'] ?? null) === 'Óculos inteligentes' && ($product['aplicarDescontoPix'] ?? true) !== false
-        ? (int)round($price * 0.8, 0, PHP_ROUND_HALF_UP) : $price;
+        ? (int)round($price * 0.85, 0, PHP_ROUND_HALF_UP) : $price;
 }
 
 function create_order(string $id, ?string $transaction, string $status, string $payment, string $method, int $total, array $customer, array $items, ?string $analytics, ?string $pixPayload = null): void

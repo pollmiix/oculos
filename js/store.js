@@ -398,7 +398,7 @@ function renderProdutos() {
           <p class="card-specs">${[p.corArmacao, p.lente, p.tamanho ? `Tamanho ${p.tamanho}` : ""].filter(Boolean).join(" · ")}</p>
           <div class="precos">
             <strong class="preco">${precoParaExibicao(p)}</strong>
-            ${produtoTemPreco(p) && window.temDescontoPix(p) ? `<del class="preco-original">${dinheiro(p.preco)}</del><span class="preco-pix-label">20% de desconto no Pix</span>` : produtoTemPreco(p) ? `<span class="preco-pix-label">Preço informado</span>` : ""}
+            ${produtoTemPreco(p) && window.temDescontoPix(p) ? `<del class="preco-original">${dinheiro(p.preco)}</del><span class="preco-pix-label">15% de desconto no Pix</span>` : produtoTemPreco(p) ? `<span class="preco-pix-label">Preço informado</span>` : ""}
           </div>
           <p class="product-stock ${p.estoque > 0 && produtoTemPreco(p) ? "" : "pendente"}">
             ${!produtoTemPreco(p) ? "Preço a confirmar com a loja" : p.estoque > 0 ? `${p.estoque} em estoque` : "Estoque a confirmar"}

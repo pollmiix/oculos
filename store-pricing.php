@@ -50,3 +50,19 @@ function fixed_smart_product_prices(array $store): array
     $store['versaoPrecosInteligentes'] = 1;
     return $store;
 }
+
+function smart_product_pix_discount(array $store): array
+{
+    if ((int)($store['versaoDescontoPixInteligentes'] ?? 0) >= 1) return $store;
+    $prices = json_decode(file_get_contents(__DIR__ . '/smart-product-prices.json'), true, 512, JSON_THROW_ON_ERROR);
+    if (is_array($store['produtos'] ?? null)) {
+        foreach ($store['produtos'] as &$product) {
+            if (!isset($prices[(string)($product['id'] ?? '')]) || ($product['categoria'] ?? '') !== 'Óculos inteligentes') continue;
+            $product['aplicarDescontoPix'] = true;
+            $product['precoPix'] = round((float)$product['preco'] * 0.85, 2, PHP_ROUND_HALF_UP);
+        }
+        unset($product);
+    }
+    $store['versaoDescontoPixInteligentes'] = 1;
+    return $store;
+}

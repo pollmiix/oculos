@@ -479,7 +479,7 @@ function renderProdutos() {
       else if (el.type === "number") {
         estado.produtos[i][k] = el.value.trim() ? Number(el.value) : null;
         if (k === "preco" && estado.produtos[i].precoPix !== null && estado.produtos[i].precoPix !== undefined) {
-          estado.produtos[i].precoPix = estado.produtos[i][k];
+          estado.produtos[i].precoPix = window.precoComDescontoPix(estado.produtos[i]);
         }
       }
       else if (k === "imagem" && !el.value.trim()) return;

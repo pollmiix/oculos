@@ -40,7 +40,7 @@ function montarEspecificacoesProduto() {
     referencia.textContent = "Frete grátis para todo o Brasil. Entrega em até 7 dias úteis após a confirmação do pagamento.";
     referencia.hidden = false;
     $("#productPixNote").textContent = window.temDescontoPix(produto)
-      ? "20% de desconto aplicado para pagamento via Pix."
+      ? "15% de desconto aplicado para pagamento via Pix."
       : "O método de pagamento disponível será exibido no checkout.";
   } else if (produto.paginaOrigem) {
     referencia.textContent = "O catálogo não informa um preço para este produto no momento.";
