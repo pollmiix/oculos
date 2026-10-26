@@ -9,6 +9,7 @@ require_once __DIR__ . '/store-config.php';
 require_once __DIR__ . '/merchant-images.php';
 require_once __DIR__ . '/product-identifiers.php';
 require_once __DIR__ . '/store-policies.php';
+require_once __DIR__ . '/store-pricing.php';
 
 const SESSION_SECONDS = 28800;
 const MAX_BODY_SIZE = 8388608;
@@ -208,7 +209,34 @@ function store_value(): ?array
         return null;
     }
     $store = json_decode((string)$value, true);
-    return is_array($store) ? $store : null;
+    if (!is_array($store)) {
+        return null;
+    }
+    if ((int)($store['versaoReducaoPrecos'] ?? 0) >= 1) {
+        return $store;
+    }
+
+    // Lock and re-read so simultaneous storefront/admin requests migrate once.
+    $pdo = db();
+    $pdo->beginTransaction();
+    try {
+        $query = $pdo->prepare('SELECT `value` FROM settings WHERE `key`=? FOR UPDATE');
+        $query->execute(['store']);
+        $original = $query->fetchColumn();
+        $store = $original === false ? null : json_decode((string)$original, true);
+        if (is_array($store) && (int)($store['versaoReducaoPrecos'] ?? 0) < 1) {
+            $backup = $pdo->prepare('INSERT IGNORE INTO settings (`key`, `value`, updated_at) VALUES (?, ?, ?)');
+            $backup->execute(['store_prices_before_20261026', $original, time()]);
+            $store = reduced_store_prices($store);
+            $update = $pdo->prepare('UPDATE settings SET `value`=?, updated_at=? WHERE `key`=?');
+            $update->execute([json_encode($store, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), time(), 'store']);
+        }
+        $pdo->commit();
+        return is_array($store) ? $store : null;
+    } catch (Throwable $error) {
+        $pdo->rollBack();
+        throw $error;
+    }
 }
 
 function send_merchant_feed(): never
