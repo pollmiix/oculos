@@ -27,3 +27,26 @@ function reduced_store_prices(array $store): array
     $store['versaoReducaoPrecos'] = 2;
     return $store;
 }
+
+function fixed_smart_product_prices(array $store): array
+{
+    if ((int)($store['versaoPrecosInteligentes'] ?? 0) >= 1) {
+        return $store;
+    }
+    $prices = json_decode(file_get_contents(__DIR__ . '/smart-product-prices.json'), true, 512, JSON_THROW_ON_ERROR);
+    if (is_array($store['produtos'] ?? null)) {
+        foreach ($store['produtos'] as &$product) {
+            $price = $prices[(string)($product['id'] ?? '')] ?? null;
+            if ($price === null || ($product['categoria'] ?? '') !== 'Óculos inteligentes') {
+                continue;
+            }
+            $product['preco'] = $price;
+            $product['precoPix'] = $price;
+            $product['precoPromocional'] = $price;
+            $product['aplicarDescontoPix'] = false;
+        }
+        unset($product);
+    }
+    $store['versaoPrecosInteligentes'] = 1;
+    return $store;
+}

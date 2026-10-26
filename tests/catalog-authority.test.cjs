@@ -84,4 +84,18 @@ vm.runInContext(fs.readFileSync(path.join(__dirname, '../js/config.js'), 'utf8')
     assert.equal(product.antigo, 120);
   }
   console.log('Published catalog authority tests passed.');
+  const smartPrices = JSON.parse(fs.readFileSync(path.join(__dirname, '../smart-product-prices.json'), 'utf8'));
+  const smartDefaults = context.LOJA_PADRAO.produtos.filter(p => p.categoria === 'Óculos inteligentes');
+  assert.equal(smartDefaults.length, 16);
+  for (const product of smartDefaults) {
+    assert.equal(product.preco, smartPrices[product.id]);
+    assert.equal(context.precoComDescontoPix(product), smartPrices[product.id], 'Displayed final prices must match admin prices.');
+  }
+  savedStore = JSON.stringify({ versaoReducaoPrecos: 2, categorias: ['Todos'], produtos: smartDefaults.map(p => ({ ...p, preco: 999, precoPix: 999, aplicarDescontoPix: true })) });
+  for (let reload = 0; reload < 2; reload++) {
+    const smart = context.carregarLojaConfigurada().produtos.filter(p => p.categoria === 'Óculos inteligentes');
+    assert.equal(smart.length, 16);
+    for (const product of smart) assert.equal(context.precoComDescontoPix(product), smartPrices[product.id]);
+  }
+  console.log('Smart product frontend pricing tests passed.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

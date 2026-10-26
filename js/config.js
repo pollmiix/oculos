@@ -1,5 +1,6 @@
 window.LOJA_PADRAO = {
   versaoReducaoPrecos: 2,
+  versaoPrecosInteligentes: 1,
   versaoCatalogo: 3,
   loja: {
     nome: "Vemari Ótica",
@@ -39,12 +40,13 @@ window.LOJA_PADRAO = {
   produtos: [
     {
       id: "rayban-meta-wayfarer-gen2-rw4012-601-1m-53",
+      aplicarDescontoPix: false,
       sku: "RW4012 601/1M 53",
       nome: "Óculos de Sol Ray-Ban Meta Wayfarer Gen 2 RW4012 601/1M 53",
       categoria: "Óculos inteligentes",
-      preco: 1788.68,
-      precoPromocional: 1882.82,
-      precoPix: 1788.68,
+      preco: 1526.64,
+      precoPromocional: 1526.64,
+      precoPix: 1526.64,
       antigo: 1981.91,
       estoque: 0,
       destaque: false,
@@ -65,12 +67,13 @@ window.LOJA_PADRAO = {
     },
     {
       id: "rayban-meta-wayfarer-gen2-rw4012-601st350",
+      aplicarDescontoPix: false,
       sku: "RW4012 601ST350",
       nome: "Óculos de Sol Ray-Ban Meta Wayfarer Gen 2 RW4012 601ST350",
       categoria: "Óculos inteligentes",
-      preco: 1627.46,
-      precoPromocional: 1713.11,
-      precoPix: 1627.46,
+      preco: 1476.64,
+      precoPromocional: 1476.64,
+      precoPix: 1476.64,
       antigo: 1765.91,
       estoque: 0,
       destaque: false,
@@ -91,12 +94,13 @@ window.LOJA_PADRAO = {
     },
     {
       id: "rayban-meta-wayfarer-gen2-rw4012-601ssb50",
+      aplicarDescontoPix: false,
       sku: "RW4012 601SSB50",
       nome: "Óculos de Grau Ray-Ban Meta Wayfarer Gen 2 RW4012 601SSB50",
       categoria: "Óculos inteligentes",
-      preco: 1547.66,
-      precoPromocional: 1629.11,
-      precoPix: 1547.66,
+      preco: 1465.64,
+      precoPromocional: 1465.64,
+      precoPix: 1465.64,
       antigo: 1679.51,
       estoque: 0,
       destaque: false,
@@ -114,12 +118,13 @@ window.LOJA_PADRAO = {
     },
     {
       id: "rayban-meta-wayfarer-gen2-rw4012-preto-verde-g15",
+      aplicarDescontoPix: false,
       sku: "RW4012",
       nome: "Óculos de Sol Ray-Ban Meta Wayfarer Gen 2 RW4012 Preto Brilhante / Verde G-15",
       categoria: "Óculos inteligentes",
-      preco: 1547.66,
-      precoPromocional: 1629.11,
-      precoPix: 1547.66,
+      preco: 1470.64,
+      precoPromocional: 1470.64,
+      precoPix: 1470.64,
       antigo: 1679.51,
       estoque: 0,
       destaque: false,
@@ -141,12 +146,13 @@ window.LOJA_PADRAO = {
     },
     {
       id: "rayban-meta-headliner-gen2-rw4013-601-71",
+      aplicarDescontoPix: false,
       sku: "RW4013 601/71",
       nome: "Óculos de Sol Ray-Ban Meta Headliner Gen 2 RW4013 601/71",
       categoria: "Óculos inteligentes",
-      preco: 1470.28,
-      precoPromocional: 1547.66,
-      precoPix: 1470.28,
+      preco: 1459.64,
+      precoPromocional: 1459.64,
+      precoPix: 1459.64,
       antigo: 1679.51,
       estoque: 0,
       destaque: false,
@@ -169,12 +175,13 @@ window.LOJA_PADRAO = {
     },
     {
       id: "rayban-meta-wayfarer-gen2-rw4012-601s1z-53",
+      aplicarDescontoPix: false,
       sku: "RW4012 601S1Z 53",
       nome: "Óculos de Sol Ray-Ban Meta Wayfarer Gen 2 RW4012 601S1Z 53",
       categoria: "Óculos inteligentes",
-      preco: 1637.09,
-      precoPromocional: 1723.25,
-      precoPix: 1637.09,
+      preco: 1481.64,
+      precoPromocional: 1481.64,
+      precoPix: 1481.64,
       antigo: 1914.72,
       estoque: 0,
       destaque: false,
@@ -194,12 +201,13 @@ window.LOJA_PADRAO = {
     },
     {
       id: "rayban-meta-skyler-gen2-rw4014-601-71",
+      aplicarDescontoPix: false,
       sku: "RW4014 601/71",
       nome: "Óculos de Sol Ray-Ban Meta Skyler Gen 2 RW4014 601/71",
       categoria: "Óculos inteligentes",
-      preco: null,
-      precoPromocional: null,
-      precoPix: null,
+      preco: 1521.64,
+      precoPromocional: 1521.64,
+      precoPix: 1521.64,
       antigo: 0.00,
       estoque: 0,
       destaque: false,
@@ -221,12 +229,13 @@ window.LOJA_PADRAO = {
     },
     {
       id: "rayban-meta-gen3-wayfarer-havana",
+      aplicarDescontoPix: false,
       sku: "RW4011 Gen 3 · Havana",
       nome: "Ray-Ban Meta Gen 3 Wayfarer Havana",
       categoria: "Óculos inteligentes",
-      preco: 1775.52,
-      precoPromocional: null,
-      precoPix: null,
+      preco: 1498.64,
+      precoPromocional: 1498.64,
+      precoPix: 1498.64,
       antigo: 0.00,
       estoque: 0,
       destaque: false,
@@ -245,12 +254,13 @@ window.LOJA_PADRAO = {
     },
     {
       id: "rayban-meta-gen3-aviator-limited-bege",
+      aplicarDescontoPix: false,
       sku: "RW4016 Gen 3 · Limited Edition",
       nome: "Ray-Ban Meta Gen 3 Aviator Limited Edition Bege",
       categoria: "Óculos inteligentes",
-      preco: 2212.32,
-      precoPromocional: null,
-      precoPix: null,
+      preco: 1543.64,
+      precoPromocional: 1543.64,
+      precoPix: 1543.64,
       antigo: 0.00,
       estoque: 0,
       destaque: false,
@@ -269,12 +279,13 @@ window.LOJA_PADRAO = {
     },
     {
       id: "rayban-meta-gen3-aviator-havana",
+      aplicarDescontoPix: false,
       sku: "RW4016 Gen 3 · Havana",
       nome: "Ray-Ban Meta Gen 3 Aviator Havana",
       categoria: "Óculos inteligentes",
-      preco: 1775.52,
-      precoPromocional: null,
-      precoPix: null,
+      preco: 1487.64,
+      precoPromocional: 1487.64,
+      precoPix: 1487.64,
       antigo: 0.00,
       estoque: 0,
       destaque: false,
@@ -293,12 +304,13 @@ window.LOJA_PADRAO = {
     },
     {
       id: "rayban-meta-gen3-zena-preto",
+      aplicarDescontoPix: false,
       sku: "RW4015 Gen 3 · Preto",
       nome: "Ray-Ban Meta Gen 3 Zena Preto",
       categoria: "Óculos inteligentes",
-      preco: 1775.52,
-      precoPromocional: null,
-      precoPix: null,
+      preco: 1515.64,
+      precoPromocional: 1515.64,
+      precoPix: 1515.64,
       antigo: 0.00,
       estoque: 0,
       destaque: false,
@@ -317,12 +329,13 @@ window.LOJA_PADRAO = {
     },
     {
       id: "rayban-meta-gen3-aviator-optics-preto",
+      aplicarDescontoPix: false,
       sku: "RW4016V Gen 3 · Optics",
       nome: "Ray-Ban Meta Gen 3 Aviator Optics Preto",
       categoria: "Óculos inteligentes",
-      preco: 1775.52,
-      precoPromocional: null,
-      precoPix: null,
+      preco: 1493.64,
+      precoPromocional: 1493.64,
+      precoPix: 1493.64,
       antigo: 0.00,
       estoque: 0,
       destaque: false,
@@ -341,12 +354,13 @@ window.LOJA_PADRAO = {
     },
     {
       id: "rayban-meta-gen3-zena-optics-rosa",
+      aplicarDescontoPix: false,
       sku: "RW4015V Gen 3 · Optics",
       nome: "Ray-Ban Meta Gen 3 Zena Optics Rosa Blush",
       categoria: "Óculos inteligentes",
-      preco: 1775.52,
-      precoPromocional: null,
-      precoPix: null,
+      preco: 1509.64,
+      precoPromocional: 1509.64,
+      precoPix: 1509.64,
       antigo: 0.00,
       estoque: 0,
       destaque: false,
@@ -365,12 +379,13 @@ window.LOJA_PADRAO = {
     },
     {
       id: "rayban-meta-gen3-wayfarer-optics-azul",
+      aplicarDescontoPix: false,
       sku: "RW4011V Gen 3 · Optics",
       nome: "Ray-Ban Meta Gen 3 Wayfarer Optics Azul Oceano",
       categoria: "Óculos inteligentes",
-      preco: 1775.52,
-      precoPromocional: null,
-      precoPix: null,
+      preco: 1504.64,
+      precoPromocional: 1504.64,
+      precoPix: 1504.64,
       antigo: 0.00,
       estoque: 0,
       destaque: false,
@@ -389,12 +404,13 @@ window.LOJA_PADRAO = {
     },
     {
       id: "rayban-meta-gen2-blayzer-optics-havana",
+      aplicarDescontoPix: false,
       sku: "RW7001 Gen 2 · Optics",
       nome: "Ray-Ban Meta Gen 2 Blayzer Optics Havana",
       categoria: "Óculos inteligentes",
-      preco: 1871.52,
-      precoPromocional: null,
-      precoPix: null,
+      preco: 1532.64,
+      precoPromocional: 1532.64,
+      precoPix: 1532.64,
       antigo: 0.00,
       estoque: 0,
       destaque: false,
@@ -413,12 +429,13 @@ window.LOJA_PADRAO = {
     },
     {
       id: "rayban-meta-gen2-scriber-optics-bege",
+      aplicarDescontoPix: false,
       sku: "RW7002 Gen 2 · Optics",
       nome: "Ray-Ban Meta Gen 2 Scriber Optics Bege Pedra",
       categoria: "Óculos inteligentes",
-      preco: 1871.52,
-      precoPromocional: null,
-      precoPix: null,
+      preco: 1537.64,
+      precoPromocional: 1537.64,
+      precoPix: 1537.64,
       antigo: 0.00,
       estoque: 0,
       destaque: false,
@@ -464,7 +481,7 @@ window.LOJA_PADRAO = window.aplicarProdutosPainelRecuperados(window.LOJA_PADRAO)
 
 window.percentualDescontoPix = 20;
 window.temDescontoPix = function (produto) {
-  return produto?.categoria === "Óculos inteligentes";
+  return produto?.categoria === "Óculos inteligentes" && produto.aplicarDescontoPix !== false;
 };
 window.precoComDescontoPix = function (produto) {
   if (typeof produto.preco !== "number" || !Number.isFinite(produto.preco) || produto.preco <= 0) {
@@ -594,6 +611,21 @@ window.carregarLojaConfigurada = function () {
       }
     }
     dadosSalvos.versaoReducaoPrecos = 2;
+    localStorage.setItem(chave, JSON.stringify(dadosSalvos));
+  }
+
+  if ((Number(dadosSalvos.versaoPrecosInteligentes) || 0) < 1) {
+    const precos = new Map(window.LOJA_PADRAO.produtos
+      .filter((produto) => produto.categoria === "Óculos inteligentes")
+      .map((produto) => [String(produto.id), produto.preco]));
+    if (Array.isArray(dadosSalvos.produtos)) {
+      dadosSalvos.produtos.forEach((produto) => {
+        const preco = precos.get(String(produto.id));
+        if (preco === undefined || produto.categoria !== "Óculos inteligentes") return;
+        Object.assign(produto, { preco, precoPix: preco, precoPromocional: preco, aplicarDescontoPix: false });
+      });
+    }
+    dadosSalvos.versaoPrecosInteligentes = 1;
     localStorage.setItem(chave, JSON.stringify(dadosSalvos));
   }
 
