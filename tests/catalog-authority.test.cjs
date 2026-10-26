@@ -71,11 +71,17 @@ vm.runInContext(fs.readFileSync(path.join(__dirname, '../js/config.js'), 'utf8')
   });
   for (let reload = 0; reload < 2; reload++) {
     const savedProduct = context.carregarLojaConfigurada().produtos.find(item => item.id === remoteProduct.id);
-    assert.equal(savedProduct.preco, 60, 'Saved prices must decrease by 40% exactly once.');
-    assert.equal(savedProduct.antigo, 90, 'Original prices must also decrease by 40%.');
-    assert.equal(savedProduct.precoPix, 54);
-    assert.equal(savedProduct.precoPromocional, 57);
+    assert.equal(savedProduct.preco, 48, 'Saved prices must receive both reductions exactly once.');
+    assert.equal(savedProduct.antigo, 72, 'Original prices must also receive both reductions.');
+    assert.equal(savedProduct.precoPix, 43.2);
+    assert.equal(savedProduct.precoPromocional, 45.6);
     assert.equal(savedProduct.estoque, 2, 'Price changes must preserve stock.');
+  }
+  savedStore = JSON.stringify({ versaoReducaoPrecos: 1, categorias: ['Todos'], produtos: [{ ...remoteProduct, antigo: 150 }] });
+  for (let reload = 0; reload < 2; reload++) {
+    const product = context.carregarLojaConfigurada().produtos.find(item => item.id === remoteProduct.id);
+    assert.equal(product.preco, 80, 'Previously reduced prices must receive only the extra 20%, once.');
+    assert.equal(product.antigo, 120);
   }
   console.log('Published catalog authority tests passed.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

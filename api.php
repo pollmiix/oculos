@@ -212,7 +212,7 @@ function store_value(): ?array
     if (!is_array($store)) {
         return null;
     }
-    if ((int)($store['versaoReducaoPrecos'] ?? 0) >= 1) {
+    if ((int)($store['versaoReducaoPrecos'] ?? 0) >= 2) {
         return $store;
     }
 
@@ -224,9 +224,9 @@ function store_value(): ?array
         $query->execute(['store']);
         $original = $query->fetchColumn();
         $store = $original === false ? null : json_decode((string)$original, true);
-        if (is_array($store) && (int)($store['versaoReducaoPrecos'] ?? 0) < 1) {
+        if (is_array($store) && (int)($store['versaoReducaoPrecos'] ?? 0) < 2) {
             $backup = $pdo->prepare('INSERT IGNORE INTO settings (`key`, `value`, updated_at) VALUES (?, ?, ?)');
-            $backup->execute(['store_prices_before_20261026', $original, time()]);
+            $backup->execute(['store_prices_before_20261026_v2', $original, time()]);
             $store = reduced_store_prices($store);
             $update = $pdo->prepare('UPDATE settings SET `value`=?, updated_at=? WHERE `key`=?');
             $update->execute([json_encode($store, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), time(), 'store']);
