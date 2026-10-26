@@ -23,8 +23,27 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css?v=20261013c">
+  <link rel="stylesheet" href="css/promo.css?v=20261026pixwelcome">
 </head>
 <body class="storefront-page">
+  <aside class="pix-offer-strip" aria-label="Oferta de pagamento no Pix">
+    <a href="#grid" data-category-link="Todos">
+      <strong>10% OFF</strong>
+      <span>Em toda a loja <b>pagando no Pix</b></span>
+      <span class="pix-offer-link">Ver óculos <span aria-hidden="true">→</span></span>
+    </a>
+  </aside>
+  <dialog class="pix-welcome" id="pixWelcome" aria-labelledby="pixWelcomeTitle" aria-describedby="pixWelcomeDescription">
+    <button class="pix-welcome-close" type="button" data-close-pix-welcome aria-label="Fechar oferta">×</button>
+    <p class="pix-welcome-brand">VEMARI ÓTICA</p>
+    <p class="pix-welcome-eyebrow">Um novo olhar. Um preço melhor.</p>
+    <h2 id="pixWelcomeTitle"><span>10%</span> de desconto</h2>
+    <p class="pix-welcome-subtitle">Em toda a loja, pagando no Pix.</p>
+    <p class="pix-welcome-description" id="pixWelcomeDescription">Escolha seus óculos favoritos. O desconto já está calculado nos preços Pix dos produtos.</p>
+    <a class="pix-welcome-action" href="#grid" data-category-link="Todos" data-close-pix-welcome autofocus>Explorar os óculos <span aria-hidden="true">→</span></a>
+    <button class="pix-welcome-later" type="button" data-close-pix-welcome>Continuar navegando</button>
+    <p class="pix-welcome-footnote">Válido para pagamento via Pix.</p>
+  </dialog>
   <div class="editorial-strip">
     <div class="container">Uma nova perspectiva. Tecnologia que acompanha seu ritmo.</div>
   </div>
@@ -501,5 +520,6 @@
   <script src="js/config.js?v=20261026other187"></script>
   <script src="js/pix.js"></script>
   <script src="js/store.js?v=20261026other187"></script>
+  <script src="js/promo.js?v=20261026pixwelcome"></script>
 </body>
 </html>

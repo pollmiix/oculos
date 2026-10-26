@@ -1,0 +1,90 @@
+.pix-offer-strip {
+  background: #e6c477;
+  color: #17130c;
+  font-family: "DM Sans", sans-serif;
+}
+.pix-offer-strip > a {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 9px 20px;
+  color: inherit;
+  text-align: center;
+  text-decoration: none;
+  font-size: 13px;
+}
+.pix-offer-strip strong {
+  padding: 4px 9px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font-size: 12px;
+  letter-spacing: .06em;
+  white-space: nowrap;
+}
+.pix-offer-strip b { font-weight: 700; }
+.pix-offer-link { font-weight: 700; white-space: nowrap; }
+.pix-offer-strip > a:focus-visible,
+.pix-welcome :focus-visible { outline: 3px solid #9f7327; outline-offset: 4px; }
+body.pix-welcome-open { overflow: hidden; }
+.pix-welcome {
+  box-sizing: border-box;
+  width: min(480px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 45px 36px 24px;
+  overflow-y: auto;
+  border: 1px solid #73603b;
+  border-radius: 18px;
+  background: radial-gradient(ellipse at 50% 0, #30291b 0, #111 60%);
+  color: #fff;
+  box-shadow: 0 28px 100px #0008;
+  font-family: "DM Sans", sans-serif;
+  text-align: center;
+}
+.pix-welcome::backdrop { background: #000b; backdrop-filter: blur(5px); }
+.pix-welcome .pix-welcome-close {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  color: #ddd;
+  font: 28px/1 sans-serif;
+  cursor: pointer;
+}
+.pix-welcome-brand { margin: 0 0 28px; color: #e6c477; font-size: 12px; font-weight: 800; letter-spacing: .23em; }
+.pix-welcome-eyebrow { margin: 0 0 8px; color: #d3cbbd; font-size: 13px; }
+.pix-welcome h2 { margin: 0; color: #fff; font-size: 24px; font-weight: 500; line-height: 1.15; }
+.pix-welcome h2 > span { display: block; color: #e6c477; font-size: clamp(78px, 20vw, 112px); font-weight: 800; letter-spacing: -.07em; line-height: 1.1; }
+.pix-welcome-subtitle { margin: 18px 0 10px; color: #fff; font-size: 17px; font-weight: 600; }
+.pix-welcome-description { margin: 0 auto 24px; max-width: 330px; color: #bbb6ad; font-size: 13px; line-height: 1.65; }
+.pix-welcome-action {
+  display: flex;
+  min-height: 50px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  border-radius: 7px;
+  background: #e6c477;
+  color: #17130c;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+}
+.pix-welcome-action:hover { background: #f1d594; }
+.pix-welcome-later { min-height: 44px; margin-top: 6px; padding: 8px 16px; border: 0; background: transparent; color: #d0c9bc; font: 12px "DM Sans", sans-serif; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.pix-welcome-footnote { margin: 8px 0 0; color: #aaa397; font-size: 10px; }
+@media (max-width: 540px) {
+  .pix-offer-strip > a { gap: 10px; padding: 9px 12px; font-size: 11px; }
+  .pix-offer-strip strong { padding: 4px 6px; font-size: 10px; }
+  .pix-offer-strip > a > span:not(.pix-offer-link) { max-width: 190px; }
+  .pix-offer-strip b { display: block; }
+  .pix-offer-link { font-size: 10px; }
+  .pix-welcome { padding: 44px 24px 20px; }
+  .pix-welcome-brand { margin-bottom: 22px; }
+}
