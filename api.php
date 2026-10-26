@@ -212,7 +212,7 @@ function store_value(): ?array
     if (!is_array($store)) {
         return null;
     }
-    if ((int)($store['versaoReducaoPrecos'] ?? 0) >= 2 && (int)($store['versaoPrecosInteligentes'] ?? 0) >= 1 && (int)($store['versaoDescontoPixInteligentes'] ?? 0) >= 1 && (int)($store['versaoPrecosFemininos'] ?? 0) >= 1 && (int)($store['versaoPrecosMasculinos'] ?? 0) >= 1 && (int)($store['versaoPrecosOutros'] ?? 0) >= 1) {
+    if ((int)($store['versaoReducaoPrecos'] ?? 0) >= 2 && (int)($store['versaoPrecosInteligentes'] ?? 0) >= 2 && (int)($store['versaoDescontoPixInteligentes'] ?? 0) >= 2 && (int)($store['versaoPrecosFemininos'] ?? 0) >= 1 && (int)($store['versaoPrecosMasculinos'] ?? 0) >= 1 && (int)($store['versaoPrecosOutros'] ?? 0) >= 1) {
         return $store;
     }
 
@@ -224,9 +224,9 @@ function store_value(): ?array
         $query->execute(['store']);
         $original = $query->fetchColumn();
         $store = $original === false ? null : json_decode((string)$original, true);
-        if (is_array($store) && ((int)($store['versaoReducaoPrecos'] ?? 0) < 2 || (int)($store['versaoPrecosInteligentes'] ?? 0) < 1 || (int)($store['versaoDescontoPixInteligentes'] ?? 0) < 1 || (int)($store['versaoPrecosFemininos'] ?? 0) < 1 || (int)($store['versaoPrecosMasculinos'] ?? 0) < 1 || (int)($store['versaoPrecosOutros'] ?? 0) < 1)) {
+        if (is_array($store) && ((int)($store['versaoReducaoPrecos'] ?? 0) < 2 || (int)($store['versaoPrecosInteligentes'] ?? 0) < 2 || (int)($store['versaoDescontoPixInteligentes'] ?? 0) < 2 || (int)($store['versaoPrecosFemininos'] ?? 0) < 1 || (int)($store['versaoPrecosMasculinos'] ?? 0) < 1 || (int)($store['versaoPrecosOutros'] ?? 0) < 1)) {
             $backup = $pdo->prepare('INSERT IGNORE INTO settings (`key`, `value`, updated_at) VALUES (?, ?, ?)');
-            $backup->execute(['store_before_other20_20261026', $original, time()]);
+            $backup->execute(['store_before_smart895_20261026', $original, time()]);
             $store = other_product_prices(male_product_prices(female_product_prices(smart_product_pix_discount(fixed_smart_product_prices(reduced_store_prices($store))))));
             $update = $pdo->prepare('UPDATE settings SET `value`=?, updated_at=? WHERE `key`=?');
             $update->execute([json_encode($store, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), time(), 'store']);
@@ -444,7 +444,7 @@ function pix_price_cents(array $product): int
 {
     $price = money_cents($product['preco'] ?? null);
     $discount = match ($product['categoria'] ?? '') {
-        'Óculos inteligentes' => 15,
+        'Óculos inteligentes' => 10,
         'Armações femininas' => 10,
         'Armações masculinas' => 10,
         'Outros óculos de grau' => 10,

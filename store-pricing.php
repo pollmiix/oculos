@@ -30,7 +30,7 @@ function reduced_store_prices(array $store): array
 
 function fixed_smart_product_prices(array $store): array
 {
-    if ((int)($store['versaoPrecosInteligentes'] ?? 0) >= 1) {
+    if ((int)($store['versaoPrecosInteligentes'] ?? 0) >= 2) {
         return $store;
     }
     $prices = json_decode(file_get_contents(__DIR__ . '/smart-product-prices.json'), true, 512, JSON_THROW_ON_ERROR);
@@ -47,23 +47,23 @@ function fixed_smart_product_prices(array $store): array
         }
         unset($product);
     }
-    $store['versaoPrecosInteligentes'] = 1;
+    $store['versaoPrecosInteligentes'] = 2;
     return $store;
 }
 
 function smart_product_pix_discount(array $store): array
 {
-    if ((int)($store['versaoDescontoPixInteligentes'] ?? 0) >= 1) return $store;
+    if ((int)($store['versaoDescontoPixInteligentes'] ?? 0) >= 2) return $store;
     $prices = json_decode(file_get_contents(__DIR__ . '/smart-product-prices.json'), true, 512, JSON_THROW_ON_ERROR);
     if (is_array($store['produtos'] ?? null)) {
         foreach ($store['produtos'] as &$product) {
             if (!isset($prices[(string)($product['id'] ?? '')]) || ($product['categoria'] ?? '') !== 'Óculos inteligentes') continue;
             $product['aplicarDescontoPix'] = true;
-            $product['precoPix'] = round((float)$product['preco'] * 0.85, 2, PHP_ROUND_HALF_UP);
+            $product['precoPix'] = round((float)$product['preco'] * 0.9, 2, PHP_ROUND_HALF_UP);
         }
         unset($product);
     }
-    $store['versaoDescontoPixInteligentes'] = 1;
+    $store['versaoDescontoPixInteligentes'] = 2;
     return $store;
 }
 
