@@ -143,4 +143,24 @@ vm.runInContext(fs.readFileSync(path.join(__dirname, '../js/config.js'), 'utf8')
     }
   }
   console.log('Male frontend pricing tests passed.');
+  const otherPrices = JSON.parse(fs.readFileSync(path.join(__dirname, '../other-product-prices.json'), 'utf8'));
+  const otherDefaults = context.LOJA_PADRAO.produtos.filter(p => p.categoria === 'Outros óculos de grau');
+  assert.equal(otherDefaults.length, 20);
+  for (const product of otherDefaults) {
+    assert.equal(product.preco, otherPrices[product.id]);
+    assert.equal(context.percentualDescontoPixProduto(product), 10);
+    assert.equal(context.precoComDescontoPix(product), Math.round(product.preco * 90) / 100);
+    assert.equal(product.precoPix, context.precoComDescontoPix(product));
+  }
+  assert.equal(context.percentualDescontoPixProduto(smartDefaults[0]), 15);
+  savedStore = JSON.stringify({ versaoReducaoPrecos: 2, categorias: ['Todos'], produtos: otherDefaults.map(p => ({ ...p, preco: 999, precoPix: 999, aplicarDescontoPix: false })) });
+  for (let reload = 0; reload < 2; reload++) {
+    const others = context.carregarLojaConfigurada().produtos.filter(p => p.categoria === 'Outros óculos de grau');
+    assert.equal(others.length, 20);
+    for (const product of others) {
+      assert.equal(product.preco, otherPrices[product.id]);
+      assert.equal(product.precoPix, Math.round(product.preco * 90) / 100);
+    }
+  }
+  console.log('Other frontend pricing tests passed.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

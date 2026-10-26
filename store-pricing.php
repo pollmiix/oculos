@@ -104,3 +104,22 @@ function male_product_prices(array $store): array
     $store['versaoPrecosMasculinos'] = 1;
     return $store;
 }
+
+function other_product_prices(array $store): array
+{
+    if ((int)($store['versaoPrecosOutros'] ?? 0) >= 1) return $store;
+    $prices = json_decode(file_get_contents(__DIR__ . '/other-product-prices.json'), true, 512, JSON_THROW_ON_ERROR);
+    if (is_array($store['produtos'] ?? null)) {
+        foreach ($store['produtos'] as &$product) {
+            $price = $prices[(string)($product['id'] ?? '')] ?? null;
+            if ($price === null || ($product['categoria'] ?? '') !== 'Outros óculos de grau') continue;
+            $product['preco'] = $price;
+            $product['precoPromocional'] = $price;
+            $product['precoPix'] = round($price * 0.9, 2, PHP_ROUND_HALF_UP);
+            $product['aplicarDescontoPix'] = true;
+        }
+        unset($product);
+    }
+    $store['versaoPrecosOutros'] = 1;
+    return $store;
+}
