@@ -29,6 +29,7 @@ function novoIdProduto() {
 }
 
 function atualizarContagemProdutos() {
+  document.querySelectorAll("[data-catalog-count]").forEach(el => { el.textContent = estado.produtos.length; });
   const contador = document.getElementById("contagemProdutos");
   if (contador) {
     contador.textContent = `${estado.produtos.length} ${estado.produtos.length === 1 ? "produto cadastrado" : "produtos cadastrados"}`;
@@ -46,6 +47,7 @@ function fileParaDataUrl(file) {
 }
 
 function renderLogin() {
+  document.getElementById("app").classList.remove("admin-workspace");
   document.getElementById("app").innerHTML = `
     <div class="login">
       <h1>Painel da loja</h1>
@@ -272,6 +274,8 @@ function renderPainel() {
       alert(`As alterações ficaram salvas apenas neste navegador. Não foi possível sincronizar o servidor: ${erro.message}`);
       return;
     }
+    const saveHint = document.getElementById("adminSaveHint");
+    if (saveHint) saveHint.textContent = "Alterações salvas no servidor";
     alert(estado.pagamento.metodo === "gateway"
       ? "Loja sincronizada com o servidor. O gateway será habilitado quando a chave de API estiver configurada no ambiente seguro do servidor."
       : "Loja atualizada. Abra a vitrine para ver as fotos novas.");
@@ -288,6 +292,7 @@ function renderPainel() {
     renderPainel();
   };
   renderProdutos();
+  window.organizarPainel({ estado, role: adminRole, report: carregarRelatorioAdmin, request: adminFetch, money: dinheiroAdmin, escape: esc });
 }
 
 function lerCamposLoja() {
@@ -570,8 +575,16 @@ async function carregarIndicadoresAdmin(days = 30) {
   const target = document.getElementById("adminMetrics");
   try {
     const m = await adminFetch(`/api/admin/dashboard?days=${days}`);
-    target.innerHTML = [["Faturamento do per\u00edodo", dinheiroAdmin(m.revenueCents)], ["Pedidos no per\u00edodo", m.orders], ["Aguardando confirmação", m.pendingOrders], ["Pagos no per\u00edodo", m.paidOrders], ["Produtos cadastrados", m.products], ["Estoque baixo (até 3)", m.lowStock], ["Clientes registrados", m.customers], ["Visitantes consentidos · 30 dias", m.visitors], ["Conversão observada", `${m.conversionPercent}%`]].map(([label, value]) => `<article class="admin-metric"><span>${label}</span><strong>${value}</strong></article>`).join("");
-    document.querySelector('.admin-metric:nth-child(8) span').textContent = `Visitantes consentidos · ${days} dias`;
+    const metrics = [
+      ["Faturamento confirmado", dinheiroAdmin(m.revenueCents), "Pedidos pagos no período", "R$"],
+      ["Pedidos recebidos", m.orders, `${m.pendingOrders} aguardando confirmação`, "↗"],
+      ["Ticket médio", dinheiroAdmin(m.paidOrders ? Math.round(m.revenueCents / m.paidOrders) : 0), "Média dos pedidos pagos", "◎"],
+      ["Produtos no catálogo", m.products, `${m.lowStock} com estoque baixo ou zerado`, "▦"]
+    ];
+    target.innerHTML = metrics.map(([label, value, note, icon]) => `<article class="admin-metric"><div class="metric-heading"><span>${label}</span><i aria-hidden="true">${icon}</i></div><strong>${value}</strong><small>${note}</small></article>`).join("");
+    const extra = document.getElementById("adminExtraMetrics");
+    if (extra) extra.textContent = `${m.paidOrders} pedidos pagos · ${m.customers} clientes · ${m.visitors} visitantes com consentimento · Conversão observada: ${m.conversionPercent}% · Últimos ${days} dias`;
+    document.querySelectorAll("[data-order-count]").forEach(el => { el.textContent = m.orders; });
     const sales = m.salesByDay || [];
     const traffic = m.trafficByDay || [];
     const maxSales = Math.max(1, ...sales.map((row) => Number(row.cents) || 0));
