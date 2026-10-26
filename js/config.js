@@ -4,7 +4,7 @@ window.LOJA_PADRAO = {
   versaoDescontoPixInteligentes: 2,
   versaoPrecosFemininos: 2,
   versaoPrecosMasculinos: 2,
-  versaoPrecosOutros: 1,
+  versaoPrecosOutros: 2,
   versaoCatalogo: 3,
   loja: {
     nome: "Vemari Ótica",
@@ -682,7 +682,7 @@ window.carregarLojaConfigurada = function () {
     localStorage.setItem(chave, JSON.stringify(dadosSalvos));
   }
 
-  if ((Number(dadosSalvos.versaoPrecosOutros) || 0) < 1) {
+  if ((Number(dadosSalvos.versaoPrecosOutros) || 0) < 2) {
     const precos = new Map(window.LOJA_PADRAO.produtos.filter(p => p.categoria === "Outros óculos de grau").map(p => [String(p.id), p.preco]));
     if (Array.isArray(dadosSalvos.produtos)) {
       dadosSalvos.produtos.forEach((produto) => {
@@ -692,7 +692,7 @@ window.carregarLojaConfigurada = function () {
         produto.precoPix = window.precoComDescontoPix(produto);
       });
     }
-    dadosSalvos.versaoPrecosOutros = 1;
+    dadosSalvos.versaoPrecosOutros = 2;
     localStorage.setItem(chave, JSON.stringify(dadosSalvos));
   }
 

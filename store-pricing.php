@@ -107,7 +107,7 @@ function male_product_prices(array $store): array
 
 function other_product_prices(array $store): array
 {
-    if ((int)($store['versaoPrecosOutros'] ?? 0) >= 1) return $store;
+    if ((int)($store['versaoPrecosOutros'] ?? 0) >= 2) return $store;
     $prices = json_decode(file_get_contents(__DIR__ . '/other-product-prices.json'), true, 512, JSON_THROW_ON_ERROR);
     if (is_array($store['produtos'] ?? null)) {
         foreach ($store['produtos'] as &$product) {
@@ -120,6 +120,6 @@ function other_product_prices(array $store): array
         }
         unset($product);
     }
-    $store['versaoPrecosOutros'] = 1;
+    $store['versaoPrecosOutros'] = 2;
     return $store;
 }
