@@ -1,8 +1,15 @@
 .pix-offer-strip {
+  position: sticky;
+  top: 0;
+  z-index: 70;
   background: #e6c477;
   color: #17130c;
   font-family: "DM Sans", sans-serif;
 }
+.storefront-page .header,
+.produto-page .product-header { top: var(--pix-offer-height, 46px); }
+.storefront-page .catalog-filters { top: calc(95px + var(--pix-offer-height, 46px)); }
+.produto-page .product-detail-gallery { top: calc(88px + var(--pix-offer-height, 46px)); }
 .pix-offer-strip > a {
   display: flex;
   min-height: 46px;

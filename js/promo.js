@@ -1,4 +1,16 @@
 (() => {
+  const strip = document.querySelector(".pix-offer-strip");
+  if (strip) {
+    const updateStripHeight = () => {
+      document.documentElement.style.setProperty("--pix-offer-height", `${Math.ceil(strip.getBoundingClientRect().height)}px`);
+    };
+    updateStripHeight();
+    if (typeof ResizeObserver === "function") {
+      new ResizeObserver(updateStripHeight).observe(strip);
+    } else {
+      window.addEventListener("resize", updateStripHeight);
+    }
+  }
   const dialog = document.getElementById("pixWelcome");
   if (!dialog || typeof dialog.showModal !== "function") return;
   const sessionKey = "vemari_pix_welcome_10_v1";
