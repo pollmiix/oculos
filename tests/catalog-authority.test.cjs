@@ -123,4 +123,24 @@ vm.runInContext(fs.readFileSync(path.join(__dirname, '../js/config.js'), 'utf8')
     }
   }
   console.log('Female frontend pricing tests passed.');
+  const malePrices = JSON.parse(fs.readFileSync(path.join(__dirname, '../male-product-prices.json'), 'utf8'));
+  const maleDefaults = context.LOJA_PADRAO.produtos.filter(p => p.categoria === 'Armações masculinas');
+  assert.equal(maleDefaults.length, 47);
+  for (const product of maleDefaults) {
+    assert.equal(product.preco, malePrices[product.id]);
+    assert.equal(context.percentualDescontoPixProduto(product), 10);
+    assert.equal(context.precoComDescontoPix(product), Math.round(product.preco * 90) / 100);
+    assert.equal(product.precoPix, context.precoComDescontoPix(product));
+  }
+  assert.equal(context.percentualDescontoPixProduto(smartDefaults[0]), 15);
+  savedStore = JSON.stringify({ versaoReducaoPrecos: 2, categorias: ['Todos'], produtos: maleDefaults.map(p => ({ ...p, preco: 999, precoPix: 999, aplicarDescontoPix: false })) });
+  for (let reload = 0; reload < 2; reload++) {
+    const males = context.carregarLojaConfigurada().produtos.filter(p => p.categoria === 'Armações masculinas');
+    assert.equal(males.length, 47);
+    for (const product of males) {
+      assert.equal(product.preco, malePrices[product.id]);
+      assert.equal(product.precoPix, Math.round(product.preco * 90) / 100);
+    }
+  }
+  console.log('Male frontend pricing tests passed.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

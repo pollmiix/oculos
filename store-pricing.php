@@ -85,3 +85,22 @@ function female_product_prices(array $store): array
     $store['versaoPrecosFemininos'] = 1;
     return $store;
 }
+
+function male_product_prices(array $store): array
+{
+    if ((int)($store['versaoPrecosMasculinos'] ?? 0) >= 1) return $store;
+    $prices = json_decode(file_get_contents(__DIR__ . '/male-product-prices.json'), true, 512, JSON_THROW_ON_ERROR);
+    if (is_array($store['produtos'] ?? null)) {
+        foreach ($store['produtos'] as &$product) {
+            $price = $prices[(string)($product['id'] ?? '')] ?? null;
+            if ($price === null || ($product['categoria'] ?? '') !== 'Armações masculinas') continue;
+            $product['preco'] = $price;
+            $product['precoPromocional'] = $price;
+            $product['precoPix'] = round($price * 0.9, 2, PHP_ROUND_HALF_UP);
+            $product['aplicarDescontoPix'] = true;
+        }
+        unset($product);
+    }
+    $store['versaoPrecosMasculinos'] = 1;
+    return $store;
+}

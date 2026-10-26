@@ -3,6 +3,7 @@ window.LOJA_PADRAO = {
   versaoPrecosInteligentes: 1,
   versaoDescontoPixInteligentes: 1,
   versaoPrecosFemininos: 1,
+  versaoPrecosMasculinos: 1,
   versaoCatalogo: 3,
   loja: {
     nome: "Vemari Ótica",
@@ -486,6 +487,7 @@ window.percentualDescontoPixProduto = function (produto) {
   if (!produto || produto.aplicarDescontoPix === false) return 0;
   if (produto.categoria === "Óculos inteligentes") return 15;
   if (produto.categoria === "Armações femininas") return 10;
+  if (produto.categoria === "Armações masculinas") return 10;
   return 0;
 };
 window.temDescontoPix = function (produto) {
@@ -661,6 +663,20 @@ window.carregarLojaConfigurada = function () {
       });
     }
     dadosSalvos.versaoPrecosFemininos = 1;
+    localStorage.setItem(chave, JSON.stringify(dadosSalvos));
+  }
+
+  if ((Number(dadosSalvos.versaoPrecosMasculinos) || 0) < 1) {
+    const precos = new Map(window.LOJA_PADRAO.produtos.filter(p => p.categoria === "Armações masculinas").map(p => [String(p.id), p.preco]));
+    if (Array.isArray(dadosSalvos.produtos)) {
+      dadosSalvos.produtos.forEach((produto) => {
+        const preco = precos.get(String(produto.id));
+        if (preco === undefined || produto.categoria !== "Armações masculinas") return;
+        Object.assign(produto, { preco, precoPromocional: preco, aplicarDescontoPix: true });
+        produto.precoPix = window.precoComDescontoPix(produto);
+      });
+    }
+    dadosSalvos.versaoPrecosMasculinos = 1;
     localStorage.setItem(chave, JSON.stringify(dadosSalvos));
   }
 

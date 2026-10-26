@@ -16,10 +16,10 @@ header('Content-Type: text/html; charset=utf-8');
 <body>
   <div class="admin" id="app"></div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-  <script src="js/catalogo-coliseu.js?v=20261026female53"></script>
-  <script src="js/catalogo-painel-recuperado.js?v=20261026female53"></script>
-  <script src="js/config.js?v=20261026female53"></script>
+  <script src="js/catalogo-coliseu.js?v=20261026male47"></script>
+  <script src="js/catalogo-painel-recuperado.js?v=20261026male47"></script>
+  <script src="js/config.js?v=20261026male47"></script>
   <script src="js/pix.js"></script>
-  <script src="js/admin.js?v=20261026female53"></script>
+  <script src="js/admin.js?v=20261026male47"></script>
 </body>
 </html>
