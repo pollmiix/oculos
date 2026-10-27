@@ -47,6 +47,7 @@ function fileParaDataUrl(file) {
 }
 
 function renderLogin() {
+  window.encerrarTesteGateway?.();
   document.getElementById("app").classList.remove("admin-workspace");
   document.getElementById("app").innerHTML = `
     <div class="login">
@@ -180,6 +181,37 @@ function renderPainel() {
           <div class="gateway-connection-actions"><button class="btn btn-ghost" id="testGateway" type="button">Verificar conexão</button><button class="btn btn-verde" id="activateGateway" type="button" disabled>Ativar Pix automático</button></div>
           <p id="gatewayConnectionResult" role="status"></p>
         </div>
+        <section class="gateway-charge-test" aria-labelledby="gatewayChargeTitle">
+          <div class="gateway-charge-intro">
+            <span class="gateway-charge-icon" aria-hidden="true">▦</span>
+            <div><h3 id="gatewayChargeTitle">Testar QR Code BlackCat</h3>
+              <p>Crie uma cobrança Pix para conferir o QR Code e a confirmação do pagamento.</p>
+              <p><strong>Este teste cria uma cobrança real na sua conta BlackCat.</strong> Se pagar o Pix, haverá movimentação financeira e poderão ser cobradas taxas. Use seus próprios dados.</p>
+              <p>O teste fica separado das vendas de produtos e não altera o estoque da loja.</p>
+            </div>
+          </div>
+          <div class="gateway-charge-workspace">
+            <form id="gatewayChargeForm">
+              <fieldset id="gatewayChargeFields">
+                <label for="gatewayTestAmount">Valor (R$) · de 1,00 a 100,00</label><input id="gatewayTestAmount" type="text" inputmode="decimal" value="1,00" pattern="[0-9]{1,3}([.,][0-9]{1,2})?" required>
+                <label for="gatewayTestName">Nome completo</label><input id="gatewayTestName" autocomplete="name" maxlength="120" required>
+                <label for="gatewayTestEmail">E-mail</label><input id="gatewayTestEmail" type="email" autocomplete="email" maxlength="254" required>
+                <label for="gatewayTestPhone">Telefone com DDD</label><input id="gatewayTestPhone" type="tel" autocomplete="tel" maxlength="20" required>
+                <label for="gatewayTestDocument">CPF ou CNPJ</label><input id="gatewayTestDocument" inputmode="numeric" maxlength="18" autocomplete="off" required>
+                <label class="gateway-charge-consent"><input id="gatewayTestConsent" type="checkbox" required><span>Entendo que será criada uma cobrança real.</span></label>
+                <button id="createGatewayTest" class="btn btn-verde" type="submit">Gerar QR Code de teste</button>
+              </fieldset>
+            </form>
+            <p id="gatewayChargeMessage" class="gateway-charge-message" role="status"></p>
+            <div id="gatewayChargeResult" hidden>
+              <strong id="gatewayChargeState" class="gateway-charge-state" role="status"></strong>
+              <p id="gatewayChargeDetails"></p>
+              <div id="gatewayChargeQr" class="gateway-charge-qr" hidden></div>
+              <label for="gatewayChargeCode">Pix Copia e Cola</label><textarea id="gatewayChargeCode" rows="4" readonly></textarea>
+              <div class="gateway-charge-actions"><button id="copyGatewayTest" class="btn btn-ghost" type="button">Copiar código Pix</button><button id="checkGatewayTest" class="btn btn-ghost" type="button">Verificar pagamento</button><a id="gatewayChargeInvoice" class="btn btn-ghost" target="_blank" rel="noopener" hidden>Abrir cobrança ↗</a><button id="newGatewayTest" class="btn btn-ghost" type="button" hidden>Preparar outro teste</button></div>
+            </div>
+          </div>
+        </section>
         <div class="grid2">
           <label>Provedor<input id="gateway_provedor" value="${esc(estado.pagamento.gateway.provedor || "BlackCat")}" readonly></label>
         </div>
@@ -307,6 +339,7 @@ function renderPainel() {
     atualizarConfiguracaoPagamento();
     document.getElementById("adminSaveHint").textContent = "Gateway ativado no servidor";
   });
+  if (adminRole === "owner") window.iniciarTesteGateway(adminCsrfToken);
 }
 
 function lerCamposLoja() {

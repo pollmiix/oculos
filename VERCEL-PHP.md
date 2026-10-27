@@ -49,6 +49,14 @@ Mudar `ADMIN_PASSWORD` nas variáveis depois de criar a conta não altera a senh
 
 As novas cobranças incluem automaticamente uma URL de notificação com token por pedido. A loja consulta a transação diretamente na BlackCat e confere o ID e o valor antes de atualizar o pagamento. Notificações repetidas são tratadas sem duplicar o evento da compra. A chave pública e a configuração de split não são enviadas neste fluxo Pix.
 
+## 5. Testar o QR Code pelo painel
+
+Em **Gateway → Testar QR Code BlackCat**, informe um valor de R$ 1,00 a R$ 100,00 e os seus próprios dados. A confirmação na tela é obrigatória: o botão cria uma cobrança Pix real na conta do gateway. Pagar essa cobrança movimenta dinheiro e pode gerar taxas.
+
+O painel mostra o QR Code, o código Copia e Cola e a situação verificada na BlackCat. Os testes ficam na tabela `gateway_test_charges`, separados dos pedidos de produtos, do faturamento de produtos e do estoque. Os dados pessoais do pagador são enviados ao gateway; a linha de teste guarda somente um hash dos dados enviados, o valor, o identificador e os dados necessários para exibir o Pix.
+
+Cada envio usa um identificador único, reservado antes da chamada ao gateway. Repetir esse identificador não cria outra cobrança. Se houver perda de resposta, consulte o teste existente antes de gerar outro. A confirmação usa o ID e o valor da transação consultados diretamente na BlackCat, inclusive para notificações automáticas.
+
 ## Referências
 
 - Runtime PHP: https://github.com/vercel-community/php

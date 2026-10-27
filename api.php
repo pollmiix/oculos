@@ -11,6 +11,7 @@ require_once __DIR__ . '/product-identifiers.php';
 require_once __DIR__ . '/store-policies.php';
 require_once __DIR__ . '/store-pricing.php';
 require_once __DIR__ . '/blackcat-gateway.php';
+require_once __DIR__ . '/blackcat-test-charge.php';
 
 const SESSION_SECONDS = 28800;
 const MAX_BODY_SIZE = 8388608;
@@ -98,7 +99,7 @@ function initialize_database(PDO $pdo, array $config): void
 {
     // Keep table creation and housekeeping off the usual product request path.
     // Bump this version whenever the schema below changes.
-    $schemaVersion = 'php-20261020-v1';
+    $schemaVersion = 'php-20261026-gateway-tests-v2';
     try {
         $check = $pdo->prepare('SELECT `value`, updated_at FROM settings WHERE `key` = ?');
         $check->execute(['php_schema_version']);
@@ -120,6 +121,7 @@ function initialize_database(PDO $pdo, array $config): void
         "CREATE TABLE IF NOT EXISTS events (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, event_name VARCHAR(40) NOT NULL, happened_at BIGINT NOT NULL, session_id CHAR(36) NOT NULL, page_path VARCHAR(240) NOT NULL, product_id VARCHAR(120) NULL, source VARCHAR(180) NULL, device VARCHAR(30) NULL, browser VARCHAR(30) NULL, INDEX idx_events_date (happened_at), INDEX idx_events_session (session_id), INDEX idx_events_name (event_name)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
         "CREATE TABLE IF NOT EXISTS admin_audit (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, admin_id BIGINT UNSIGNED NOT NULL, action VARCHAR(80) NOT NULL, entity VARCHAR(80) NOT NULL, entity_id VARCHAR(120) NULL, happened_at BIGINT NOT NULL, INDEX idx_audit_admin (admin_id), CONSTRAINT fk_audit_admin FOREIGN KEY (admin_id) REFERENCES admins(id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
         "CREATE TABLE IF NOT EXISTS payment_transactions (transaction_id VARCHAR(120) PRIMARY KEY, amount BIGINT NOT NULL, external_ref VARCHAR(120) NOT NULL, created_at BIGINT NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+        "CREATE TABLE IF NOT EXISTS gateway_test_charges (request_id CHAR(36) PRIMARY KEY, admin_id BIGINT UNSIGNED NOT NULL, transaction_id VARCHAR(120) NULL UNIQUE, external_ref VARCHAR(120) NOT NULL UNIQUE, amount BIGINT NOT NULL, status VARCHAR(30) NOT NULL, payload_hash CHAR(64) NOT NULL, payment_json LONGTEXT NULL, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
         "CREATE TABLE IF NOT EXISTS api_rate_limits (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, bucket_key CHAR(64) NOT NULL, happened_at BIGINT NOT NULL, INDEX idx_rate_bucket (bucket_key, happened_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
     ];
     foreach ($schema as $statement) {
@@ -713,7 +715,10 @@ function route_request(): void
     if ($method === 'GET' && $path === '/api/admin/gateway/status') blackcat_admin_status();
     if ($method === 'POST' && $path === '/api/admin/gateway/test') blackcat_admin_connect(false);
     if ($method === 'POST' && $path === '/api/admin/gateway/activate') blackcat_admin_connect(true);
+    if ($method === 'POST' && $path === '/api/admin/gateway/charges') blackcat_test_create();
+    if ($method === 'GET' && preg_match('#^/api/admin/gateway/charges/([a-f0-9-]{36})$#D', $path, $testMatch)) blackcat_test_status($testMatch[1]);
     if ($method === 'POST' && $path === '/api/webhooks/blackcat') blackcat_webhook();
+    if ($method === 'POST' && $path === '/api/webhooks/blackcat-test') blackcat_test_webhook();
     if ($method === 'GET' && $path === '/api/store') {
         $store = store_value();
         if ($store === null) {

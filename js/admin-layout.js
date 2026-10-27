@@ -129,7 +129,7 @@
     shell.querySelector(".dashboard-shade").addEventListener("click", () => setMenu(false), { signal });
     window.addEventListener("keydown", event => { if (event.key === "Escape") setMenu(false); }, { signal });
     shell.addEventListener("input", event => {
-      if (event.target.matches("input:not([type=search]), textarea, select")) document.getElementById("adminSaveHint").textContent = "Você tem alterações. Clique em Salvar alterações para publicar.";
+      if (event.target.matches("input:not([type=search]), textarea, select") && !event.target.closest(".gateway-charge-test, .products-toolbar")) document.getElementById("adminSaveHint").textContent = "Você tem alterações. Clique em Salvar alterações para publicar.";
     }, { signal });
     payments.querySelectorAll('input[name="metodoPagamento"]').forEach(radio => radio.addEventListener("change", () => select(radio.value === "pix" ? "pix" : "gateway"), { signal }));
     const stockLink = document.createElement("button");

@@ -1,4 +1,24 @@
 :root { color-scheme: dark; }
+.gateway-charge-test { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.1fr); gap: 32px; margin: 24px 0; padding: 22px; border: 1px solid #303038; border-radius: 12px; background: #111114; }
+.gateway-charge-intro { display: flex; align-items: flex-start; gap: 14px; }
+.gateway-charge-icon { display: grid; flex: 0 0 36px; height: 36px; place-items: center; border-radius: 9px; background: #30291d; color: #e1c384; font-size: 20px; }
+.gateway-charge-intro h3 { margin: 2px 0 12px; font-size: 15px; }
+.gateway-charge-intro p { margin: 0 0 10px; font-size: 11px; line-height: 1.8; }
+.gateway-charge-workspace { min-width: 0; }
+.gateway-charge-workspace fieldset { min-width: 0; padding: 0; margin: 0; border: 0; }
+.gateway-charge-workspace label { display: block; }
+.gateway-charge-workspace input { min-height: 42px; }
+.gateway-charge-workspace .gateway-charge-consent { display: flex; align-items: center; gap: 9px; margin: 0 0 16px; line-height: 1.6; }
+.gateway-charge-consent input[type="checkbox"] { flex: 0 0 18px; min-height: 18px; margin: 0; }
+.gateway-charge-workspace fieldset:disabled { opacity: .65; }
+.gateway-charge-message { font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
+.gateway-charge-state { display: block; margin-top: 18px; color: #e1c384; font-size: 16px; }
+.gateway-charge-state[data-state="PAID"] { color: #6cd8a5; }
+#gatewayChargeDetails { font-size: 11px; overflow-wrap: anywhere; line-height: 1.7; }
+.gateway-charge-qr { width: min(244px,100%); padding: 12px; margin: 20px 0; border-radius: 8px; background: #fff; }
+.gateway-charge-qr img { display: block; width: 100%; height: auto; }
+.gateway-charge-actions { display: flex; gap: 9px; flex-wrap: wrap; }
+@media(max-width:1100px) { .gateway-charge-test { grid-template-columns: minmax(0,1fr); gap: 20px; padding: 16px; } }
 .gateway-connection-card { padding: 18px; margin: 16px 0 22px; border: 1px solid #48402d; border-radius: 10px; background: #1c1a15; }
 .gateway-connection-card > p:first-child { color: #e3c582; font-weight: 700; }
 .gateway-connection-card ul { display: grid; gap: 12px; padding: 0; list-style: none; font-size: 12px; color: #999; }

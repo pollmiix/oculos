@@ -34,6 +34,7 @@ window.iniciarConexaoGateway = function (csrf, onActivated) {
         await refresh();
         result.textContent = "Gateway ativado. Faça uma compra de validação para conferir o recebimento e a confirmação do pedido.";
       } else {
+        await refresh();
         result.textContent = `Conexão validada: ${data.seller.name}. Você já pode ativar o Pix automático.`;
         activate.disabled = false;
       }
