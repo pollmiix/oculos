@@ -96,3 +96,18 @@ body.pix-welcome-open { overflow: hidden; }
   .pix-welcome { padding: 44px 24px 20px; }
   .pix-welcome-brand { margin-bottom: 22px; }
 }
+
+/* Keep the offer visible throughout product browsing. */
+body.produto-page { padding-top: var(--pix-offer-height, 36px); }
+.produto-page .pix-offer-strip { position: fixed; inset: 0 0 auto; z-index: 80; }
+.produto-page .product-pix-note.has-pix-discount {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 8px 12px;
+  border: 1px solid #e6c477;
+  border-radius: 4px;
+  background: #fff6df;
+  color: #654711;
+  font-size: 13px;
+  font-weight: 700;
+}

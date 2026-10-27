@@ -36,6 +36,7 @@ function montarEspecificacoesProduto() {
   specs.hidden = especificacoes.length === 0;
 
   const referencia = $("#productPriceReference");
+  $("#productPixNote").classList.toggle("has-pix-discount", produtoTemPreco(produto) && window.temDescontoPix(produto));
   if (produtoTemPreco(produto)) {
     referencia.textContent = "Frete grátis para todo o Brasil. Entrega em até 7 dias úteis após a confirmação do pagamento.";
     referencia.hidden = false;
