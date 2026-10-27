@@ -24,6 +24,6 @@ header('Content-Type: text/html; charset=utf-8');
   <script src="js/admin-layout.js?v=20261026qrtest"></script>
   <script src="js/gateway-admin.js?v=20261026qrtest"></script>
   <script src="js/gateway-test.js?v=20261026qrtest"></script>
-  <script src="js/admin.js?v=20261026qrtest"></script>
+  <script src="js/admin.js?v=20261026qrtest2"></script>
 </body>
 </html>

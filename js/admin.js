@@ -215,12 +215,6 @@ function renderPainel() {
         <div class="grid2">
           <label>Provedor<input id="gateway_provedor" value="${esc(estado.pagamento.gateway.provedor || "BlackCat")}" readonly></label>
         </div>
-        <div class="aviso gateway-security-note">
-          <strong>Chave privada: configure somente no servidor</strong>
-          <p>Na Vercel, abra o projeto da loja → Settings → Environment Variables. Cadastre a nova chave privada como <code>BLACKCAT_API_KEY</code> em Production e faça Redeploy. Depois clique em “Verificar conexão”.</p>
-          <p>O Pix automático gera a cobrança, recebe a notificação de pagamento e confere o valor diretamente na BlackCat antes de atualizar o pedido.</p>
-          <a class="btn btn-ghost" href="https://vercel.com/dashboard" target="_blank" rel="noopener">Abrir Vercel ↗</a>
-        </div>
       </div>
 
       </section>
