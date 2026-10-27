@@ -10,6 +10,7 @@ require_once __DIR__ . '/merchant-images.php';
 require_once __DIR__ . '/product-identifiers.php';
 require_once __DIR__ . '/store-policies.php';
 require_once __DIR__ . '/store-pricing.php';
+require_once __DIR__ . '/blackcat-gateway.php';
 
 const SESSION_SECONDS = 28800;
 const MAX_BODY_SIZE = 8388608;
@@ -465,29 +466,45 @@ function create_order(string $id, ?string $transaction, string $status, string $
 function update_payment(string $orderId, string $status, bool $byTransaction = false): bool
 {
     $pdo = db();
-    $column = $byTransaction ? 'transaction_id' : 'id';
-    $find = $pdo->prepare("SELECT id,payment_status,analytics_session_id FROM orders WHERE {$column}=?");
-    $find->execute([$orderId]);
-    $previous = $find->fetch();
-    if (!$previous) {
-        return false;
-    }
-    $normalized = strtolower($status);
-    $orderStatus = match ($normalized) {
-        'paid' => 'paid', 'cancelled' => 'cancelled', 'refunded' => 'refunded', default => 'awaiting_payment'
-    };
-    $update = $pdo->prepare("UPDATE orders SET payment_status=?,status=? WHERE {$column}=?");
-    $update->execute([$normalized, $orderStatus, $orderId]);
-    if ($normalized === 'paid' && $previous['payment_status'] !== 'paid' && $previous['analytics_session_id']) {
-        $event = $pdo->prepare('SELECT page_path,source,device,browser FROM events WHERE session_id=? ORDER BY happened_at DESC LIMIT 1');
-        $event->execute([$previous['analytics_session_id']]);
-        $source = $event->fetch();
-        if ($source) {
-            $insert = $pdo->prepare('INSERT INTO events(event_name,happened_at,session_id,page_path,source,device,browser) VALUES(?,?,?,?,?,?,?)');
-            $insert->execute(['purchase', time(), $previous['analytics_session_id'], '/checkout', $source['source'], $source['device'], $source['browser']]);
+    $ownsTransaction = !$pdo->inTransaction();
+    if ($ownsTransaction) $pdo->beginTransaction();
+    try {
+        $column = $byTransaction ? 'transaction_id' : 'id';
+        $find = $pdo->prepare("SELECT id,payment_status,analytics_session_id FROM orders WHERE {$column}=? FOR UPDATE");
+        $find->execute([$orderId]);
+        $previous = $find->fetch();
+        if (!$previous) {
+            if ($ownsTransaction) $pdo->commit();
+            return false;
         }
+        $normalized = strtolower($status);
+        if ($normalized === $previous['payment_status'] || ($byTransaction && (
+            $previous['payment_status'] === 'refunded'
+            || ($previous['payment_status'] === 'paid' && in_array($normalized, ['pending', 'cancelled'], true))
+            || ($previous['payment_status'] === 'cancelled' && $normalized === 'pending')))) {
+            if ($ownsTransaction) $pdo->commit();
+            return true;
+        }
+        $orderStatus = match ($normalized) {
+            'paid' => 'paid', 'cancelled' => 'cancelled', 'refunded' => 'refunded', default => 'awaiting_payment'
+        };
+        $update = $pdo->prepare("UPDATE orders SET payment_status=?,status=? WHERE {$column}=?");
+        $update->execute([$normalized, $orderStatus, $orderId]);
+        if ($normalized === 'paid' && $previous['payment_status'] !== 'paid' && $previous['analytics_session_id']) {
+            $event = $pdo->prepare('SELECT page_path,source,device,browser FROM events WHERE session_id=? ORDER BY happened_at DESC LIMIT 1');
+            $event->execute([$previous['analytics_session_id']]);
+            $source = $event->fetch();
+            if ($source) {
+                $insert = $pdo->prepare('INSERT INTO events(event_name,happened_at,session_id,page_path,source,device,browser) VALUES(?,?,?,?,?,?,?)');
+                $insert->execute(['purchase', time(), $previous['analytics_session_id'], '/checkout', $source['source'], $source['device'], $source['browser']]);
+            }
+        }
+        if ($ownsTransaction) $pdo->commit();
+        return true;
+    } catch (Throwable $error) {
+        if ($ownsTransaction && $pdo->inTransaction()) $pdo->rollBack();
+        throw $error;
     }
-    return true;
 }
 
 function orders_list(int $limit = 200): array
@@ -614,7 +631,7 @@ function send_csv(string $kind, array $rows): never
     exit;
 }
 
-function call_blackcat(string $path, string $method, string $apiKey, ?array $payload = null): array
+function call_blackcat(string $path, string $method, string $apiKey, ?array $payload = null, int $timeout = 25): array
 {
     if (!function_exists('curl_init')) {
         throw new RuntimeException('A extensão cURL do PHP precisa estar ativada para usar o gateway.');
@@ -622,7 +639,7 @@ function call_blackcat(string $path, string $method, string $apiKey, ?array $pay
     $handle = curl_init(BLACKCAT_API . $path);
     $headers = ['X-API-Key: ' . $apiKey, 'Accept: application/json'];
     curl_setopt_array($handle, [CURLOPT_RETURNTRANSFER => true, CURLOPT_CUSTOMREQUEST => $method,
-        CURLOPT_HTTPHEADER => $headers, CURLOPT_TIMEOUT => 25]);
+        CURLOPT_HTTPHEADER => $headers, CURLOPT_CONNECTTIMEOUT => min(5, $timeout), CURLOPT_TIMEOUT => $timeout]);
     if ($payload !== null) {
         $headers[] = 'Content-Type: application/json';
         curl_setopt($handle, CURLOPT_HTTPHEADER, $headers);
@@ -693,6 +710,10 @@ function route_request(): void
         respond(200, ['ok' => true, 'paymentConfigured' => config_value('blackcat_api_key') !== '',
             'adminConfigured' => (int)$pdo->query('SELECT COUNT(*) FROM admins')->fetchColumn() > 0]);
     }
+    if ($method === 'GET' && $path === '/api/admin/gateway/status') blackcat_admin_status();
+    if ($method === 'POST' && $path === '/api/admin/gateway/test') blackcat_admin_connect(false);
+    if ($method === 'POST' && $path === '/api/admin/gateway/activate') blackcat_admin_connect(true);
+    if ($method === 'POST' && $path === '/api/webhooks/blackcat') blackcat_webhook();
     if ($method === 'GET' && $path === '/api/store') {
         $store = store_value();
         if ($store === null) {
@@ -794,6 +815,9 @@ function route_request(): void
         }
         if (isset($value['pagamento']) && (!is_array($value['pagamento']) || !in_array($value['pagamento']['metodo'] ?? null, ['pix', 'gateway'], true))) {
             throw new InvalidArgumentException('Escolha PIX ou gateway como forma de pagamento.');
+        }
+        if (($value['pagamento']['metodo'] ?? '') === 'gateway' && config_value('blackcat_api_key') === '') {
+            throw new InvalidArgumentException('Configure a chave privada na Vercel e verifique a conexão na área Gateway antes de ativar.');
         }
         $query = $pdo->prepare('INSERT INTO settings(`key`,`value`,updated_at) VALUES(?,?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`),updated_at=VALUES(updated_at)');
         $query->execute(['store', json_encode(safe_store($value), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), time()]);
@@ -1087,6 +1111,10 @@ function create_blackcat_payment(): never
         'items' => $saleItems, 'customer' => ['name' => $name, 'email' => $email, 'phone' => $phone,
             'document' => ['number' => $document, 'type' => 'cpf']],
         'shipping' => $address, 'pix' => ['expiresInDays' => 1], 'externalRef' => $externalRef];
+    $publicBase = rtrim(config_value('public_base_url', 'https://vemariotica.online'), '/');
+    if (parse_url($publicBase, PHP_URL_SCHEME) !== 'https') throw new RuntimeException('Configure PUBLIC_BASE_URL com HTTPS.');
+    $payload['postbackUrl'] = $publicBase . '/api/webhooks/blackcat?ref=' . rawurlencode($externalRef)
+        . '&token=' . blackcat_callback_token($externalRef, config_value('app_secret'));
     try {
         [$status, $response] = call_blackcat('/sales/create-sale', 'POST', $apiKey, $payload);
     } catch (RuntimeException $error) {
@@ -1097,6 +1125,8 @@ function create_blackcat_payment(): never
         respond(502, ['error' => (string)($response['message'] ?? 'A BlackCat não criou a cobrança. Confira a configuração do gateway.')]);
     }
     $transactionId = (string)$transaction['transactionId'];
+    try { blackcat_confirmed_transaction($response, $transactionId, $total); }
+    catch (RuntimeException) { respond(502, ['error' => 'O gateway não confirmou o valor e a situação da cobrança criada. Fale com a loja antes de tentar novamente.']); }
     $paymentData = is_array($transaction['paymentData'] ?? null) ? $transaction['paymentData'] : [];
     $pixPayload = trim((string)($paymentData['copyPaste'] ?? $paymentData['qrCode'] ?? ''));
     try {
@@ -1143,7 +1173,10 @@ function payment_status(string $transactionId): never
         respond(502, ['error' => 'Não foi possível consultar o status na BlackCat.']);
     }
     $data = $response['data'] ?? null;
-    if ($status !== 200 || !is_array($data) || ($data['transactionId'] ?? null) !== $transactionId || (int)($data['amount'] ?? -1) !== (int)$amount) {
+    try {
+        if ($status !== 200) throw new RuntimeException('Falha na consulta.');
+        $data = blackcat_confirmed_transaction($response, $transactionId, (int)$amount);
+    } catch (RuntimeException) {
         respond(502, ['error' => 'A BlackCat não confirmou o status nem o valor desta cobrança.']);
     }
     $state = $data['status'] ?? '';

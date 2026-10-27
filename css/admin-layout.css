@@ -1,4 +1,10 @@
 :root { color-scheme: dark; }
+.gateway-connection-card { padding: 18px; margin: 16px 0 22px; border: 1px solid #48402d; border-radius: 10px; background: #1c1a15; }
+.gateway-connection-card > p:first-child { color: #e3c582; font-weight: 700; }
+.gateway-connection-card ul { display: grid; gap: 12px; padding: 0; list-style: none; font-size: 12px; color: #999; }
+.gateway-connection-card li[data-ready="true"] { color: #7dd4ab; }
+.gateway-connection-actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 20px 0; }
+.gateway-connection-card button:disabled { opacity: .45; cursor: not-allowed; }
 * { box-sizing: border-box; }
 body { background: #0b0b0d; color: #eee; }
 [hidden] { display: none !important; }

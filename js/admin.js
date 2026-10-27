@@ -174,13 +174,20 @@ function renderPainel() {
 
       <div id="gatewaySettings" hidden>
         <h2>Gateway BlackCat</h2>
+        <div class="gateway-connection-card">
+          <p id="gatewayConnectionStatus" role="status">Conferindo a configuração do servidor...</p>
+          <ul id="gatewayConnectionSteps"></ul>
+          <div class="gateway-connection-actions"><button class="btn btn-ghost" id="testGateway" type="button">Verificar conexão</button><button class="btn btn-verde" id="activateGateway" type="button" disabled>Ativar Pix automático</button></div>
+          <p id="gatewayConnectionResult" role="status"></p>
+        </div>
         <div class="grid2">
           <label>Provedor<input id="gateway_provedor" value="${esc(estado.pagamento.gateway.provedor || "BlackCat")}" readonly></label>
         </div>
         <div class="aviso gateway-security-note">
           <strong>Chave privada: configure somente no servidor</strong>
-          <p>Adicione a chave API da BlackCat à variável <code>BLACKCAT_API_KEY</code> no arquivo local <code>.env</code> do servidor. Nunca cole a chave neste painel. Este site usa a chave no servidor para criar cobranças PIX e consultar o status.</p>
-          <p>O campo “código de split” não é enviado: ele não aparece no endpoint de criação de venda da documentação BlackCat. Confirme com o suporte qual integração de split é aceita antes de dividir valores.</p>
+          <p>Na Vercel, abra o projeto da loja → Settings → Environment Variables. Cadastre a nova chave privada como <code>BLACKCAT_API_KEY</code> em Production e faça Redeploy. Depois clique em “Verificar conexão”.</p>
+          <p>O Pix automático gera a cobrança, recebe a notificação de pagamento e confere o valor diretamente na BlackCat antes de atualizar o pedido.</p>
+          <a class="btn btn-ghost" href="https://vercel.com/dashboard" target="_blank" rel="noopener">Abrir Vercel ↗</a>
         </div>
       </div>
 
@@ -293,6 +300,13 @@ function renderPainel() {
   };
   renderProdutos();
   window.organizarPainel({ estado, role: adminRole, report: carregarRelatorioAdmin, request: adminFetch, money: dinheiroAdmin, escape: esc });
+  if (adminRole === "owner") window.iniciarConexaoGateway(adminCsrfToken, () => {
+    estado.pagamento.metodo = "gateway";
+    estado.pagamento.gateway.provedor = "BlackCat";
+    document.querySelector('input[name="metodoPagamento"][value="gateway"]').checked = true;
+    atualizarConfiguracaoPagamento();
+    document.getElementById("adminSaveHint").textContent = "Gateway ativado no servidor";
+  });
 }
 
 function lerCamposLoja() {

@@ -40,7 +40,17 @@ Não coloque esses valores no GitHub, em arquivos JavaScript ou em mensagens pú
 
 Mudar `ADMIN_PASSWORD` nas variáveis depois de criar a conta não altera a senha já gravada no banco. Configurações, pedidos e contas de outra hospedagem não são transferidos automaticamente.
 
+## 4. Ativar Pix automático BlackCat
+
+1. Se uma chave privada foi exposta, redefina as credenciais no gateway. Cadastre a nova chave como `BLACKCAT_API_KEY` em **Production** na Vercel e faça **Redeploy**. Não coloque a chave em mensagens, arquivos públicos ou no painel da loja.
+2. Entre em `/admin.php`, abra **Gateway** e clique em **Verificar conexão**. Essa verificação consulta a identificação da conta na BlackCat, sem criar uma cobrança.
+3. Confira o nome da conta e clique em **Ativar Pix automático**. A ativação valida a conexão novamente e altera apenas o método de pagamento do catálogo compartilhado.
+4. Valide uma compra e seu recebimento antes de considerar a integração operacional. A existência da variável de ambiente, sozinha, não comprova que uma cobrança foi criada ou paga com sucesso.
+
+As novas cobranças incluem automaticamente uma URL de notificação com token por pedido. A loja consulta a transação diretamente na BlackCat e confere o ID e o valor antes de atualizar o pagamento. Notificações repetidas são tratadas sem duplicar o evento da compra. A chave pública e a configuração de split não são enviadas neste fluxo Pix.
+
 ## Referências
 
 - Runtime PHP: https://github.com/vercel-community/php
 - Configuração da Vercel: https://vercel.com/docs/project-configuration
+- Documentação da BlackCat: https://docs.blackcatoficial.com/
