@@ -4,12 +4,10 @@ $publisherPython = Join-Path $projectRoot '.venv\Scripts\pythonw.exe'
 $publisherScript = Join-Path $projectRoot 'auto-publish.py'
 $publisherState = Join-Path $projectRoot '.auto-publish'
 $publisherPidFile = Join-Path $publisherState 'pid'
-if (Test-Path -LiteralPath $publisherPidFile) {
-    $publisherProcess = Get-Process -Id ([int](Get-Content -LiteralPath $publisherPidFile)) -ErrorAction SilentlyContinue
-    if ($publisherProcess -and $publisherProcess.Path -eq $publisherPython) {
-        Write-Output 'A publicacao automatica ja esta funcionando.'
-        exit 0
-    }
+$existingPublishers = @(Get-CimInstance Win32_Process -Filter "Name='pythonw.exe'" | Where-Object { $_.CommandLine -and $_.CommandLine.Contains($publisherScript) })
+if ($existingPublishers.Count -gt 0) {
+    Write-Output 'A publicacao automatica ja esta funcionando.'
+    exit 0
 }
 if (-not (Test-Path -LiteralPath $publisherPython)) {
     throw 'Python do projeto nao encontrado em .venv\Scripts\pythonw.exe.'
