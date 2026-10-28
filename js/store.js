@@ -878,7 +878,7 @@ async function gerarCobrancaBlackCat(dados) {
     $("#checkoutTitle").textContent = "Pagamento BlackCat";
     $(".pix-payment-heading h3").textContent = "Cobrança PIX pronta";
     $(".pix-payment-heading p").textContent = "Escaneie o QR Code gerado pela BlackCat para pagar.";
-    $(".pix-confirm-note").textContent = "O status será confirmado diretamente com a BlackCat antes de registrar o pedido como pago.";
+    $(".pix-confirm-note").hidden = true;
     $("#btnPago").textContent = "Verificar pagamento";
     const imagemQr = $("#pixQr");
     const statusQr = $("#pixQrStatus");
@@ -896,18 +896,11 @@ async function gerarCobrancaBlackCat(dados) {
       statusQr.textContent = "";
     } else {
       imagemQr.removeAttribute("src");
-      statusQr.textContent = "A BlackCat não forneceu a imagem do QR. Use a página de pagamento ou o código Copia e Cola.";
+      statusQr.textContent = "A BlackCat não forneceu a imagem do QR. Use o código Copia e Cola.";
     }
     const detalhesPix = $(".pix-code-details");
     detalhesPix.hidden = !pixPayload;
     $("#btnCopiar").disabled = !pixPayload;
-    const linkFatura = $("#pixInvoiceLink");
-    if (typeof charge.invoiceUrl === "string" && charge.invoiceUrl.startsWith("https://")) {
-      linkFatura.href = charge.invoiceUrl;
-      linkFatura.hidden = false;
-    } else {
-      linkFatura.hidden = true;
-    }
     const statusPagamento = $("#gatewayPaymentStatus");
     statusPagamento.hidden = false;
     statusPagamento.textContent = "Aguardando confirmação do pagamento pela BlackCat.";

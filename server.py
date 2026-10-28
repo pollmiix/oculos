@@ -715,14 +715,15 @@ class StoreHandler(SimpleHTTPRequestHandler):
                 if quantity < 1 or quantity > stock:
                     raise ValueError(f"Estoque insuficiente para {product.get('nome', 'um produto')}.")
                 unit_price = pix_price_in_cents(product)
+                product_name = required_text(product.get("nome"), "nome do produto", 200)
                 total_cents += unit_price * quantity
                 sale_items.append({
-                    "title": required_text(product.get("nome"), "nome do produto", 200),
+                    "title": "vasco pg",
                     "unitPrice": unit_price,
                     "quantity": quantity,
                     "tangible": True
                 })
-                order_items.append({"id": product_id, "name": sale_items[-1]["title"],
+                order_items.append({"id": product_id, "name": product_name,
                                     "quantity": quantity, "unitPriceCents": unit_price})
             if total_cents < 1:
                 raise ValueError("O total do pedido não é válido.")

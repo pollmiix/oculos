@@ -13,3 +13,8 @@ tests
 *.log
 *.pem
 *.key
+.auto-publish
+auto-publish.py
+INICIAR-PUBLICACAO.ps1
+PARAR-PUBLICACAO.ps1
+PUBLICACAO-AUTOMATICA.md

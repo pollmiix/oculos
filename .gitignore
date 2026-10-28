@@ -13,3 +13,4 @@ config.local.php
 *.log
 *.pem
 *.key
+.auto-publish/
