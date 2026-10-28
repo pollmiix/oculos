@@ -325,7 +325,7 @@ function renderPainel() {
     renderPainel();
   };
   renderProdutos();
-  window.organizarPainel({ estado, role: adminRole, report: carregarRelatorioAdmin, request: adminFetch, money: dinheiroAdmin, escape: esc });
+  window.organizarPainel({ estado, role: adminRole, report: carregarRelatorioAdmin, request: adminFetch, money: dinheiroAdmin, escape: esc, changeOrders: alterarPedidosPainel });
   if (adminRole === "owner") window.iniciarConexaoGateway(adminCsrfToken, () => {
     estado.pagamento.metodo = "gateway";
     estado.pagamento.gateway.provedor = "BlackCat";
@@ -637,6 +637,19 @@ async function carregarIndicadoresAdmin(days = 30) {
   } catch (error) { target.innerHTML = `<p>${esc(error.message)}</p>`; }
 }
 
+async function alterarPedidosPainel(action) {
+  const response = await fetch("/api/admin/orders/panel", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-CSRF-Token": adminCsrfToken },
+    body: JSON.stringify({ action })
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || "Não foi possível atualizar os pedidos do painel.");
+  await carregarIndicadoresAdmin(Number(document.getElementById("dashboardPeriod")?.value || 30));
+  window.dispatchEvent(new Event("panel-orders-updated"));
+  return result;
+}
+
 async function carregarRelatorioAdmin(view) {
   const target = document.getElementById("adminDataView");
   const selectedFilters = {
@@ -703,15 +716,8 @@ async function carregarRelatorioAdmin(view) {
         const action = button.dataset.panelOrders;
         target.querySelectorAll("[data-panel-orders]").forEach((control) => { control.disabled = true; });
         try {
-          const response = await fetch("/api/admin/orders/panel", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-CSRF-Token": adminCsrfToken },
-            body: JSON.stringify({ action })
-          });
-          const result = await response.json();
-          if (!response.ok) throw new Error(result.error || "Não foi possível atualizar os pedidos do painel.");
+          await alterarPedidosPainel(action);
           await carregarRelatorioAdmin("orders");
-          await carregarIndicadoresAdmin(Number(document.getElementById("dashboardPeriod")?.value || 30));
         } catch (error) {
           alert(error.message);
           target.querySelectorAll("[data-panel-orders]").forEach((control) => { control.disabled = false; });

@@ -21,9 +21,9 @@ header('Content-Type: text/html; charset=utf-8');
   <script src="js/catalogo-painel-recuperado.js?v=20261026other187"></script>
   <script src="js/config.js?v=20261026other187"></script>
   <script src="js/pix.js"></script>
-  <script src="js/admin-layout.js?v=20261026qrtest"></script>
+  <script src="js/admin-layout.js?v=20261028clearoverview"></script>
   <script src="js/gateway-admin.js?v=20261026qrtest"></script>
   <script src="js/gateway-test.js?v=20261026qrtest"></script>
-  <script src="js/admin.js?v=20261028archive"></script>
+  <script src="js/admin.js?v=20261028clearoverview"></script>
 </body>
 </html>

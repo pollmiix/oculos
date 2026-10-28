@@ -14,7 +14,7 @@
   };
   const icon = key => `<svg viewBox="0 0 24 24" aria-hidden="true">${icons[key] || icons.overview}</svg>`;
 
-  window.organizarPainel = ({ estado, role, report, request, money, escape: esc }) => {
+  window.organizarPainel = ({ estado, role, report, request, money, escape: esc, changeOrders }) => {
     events?.abort();
     events = new AbortController();
     const signal = events.signal;
@@ -80,7 +80,7 @@
     if (owner) {
       const recent = document.createElement("section");
       recent.className = "dashboard-recent";
-      recent.innerHTML = '<div class="dashboard-section-heading"><div><h2>Pedidos recentes</h2><p>Confira o recebimento antes de confirmar um pagamento.</p></div><button class="btn btn-ghost" data-dashboard-view="orders" type="button">Ver todas as vendas →</button></div><div id="dashboardRecentOrders"><p class="dashboard-empty">Carregando pedidos...</p></div>';
+      recent.innerHTML = '<div class="dashboard-section-heading"><div><h2>Pedidos recentes</h2><p>Confira o recebimento antes de confirmar um pagamento.</p></div><div class="admin-data-actions"><button class="btn btn-ghost" id="dashboardClearOrders" type="button">Limpar pedidos do painel</button><button class="btn btn-ghost" data-dashboard-view="orders" type="button">Ver todas as vendas →</button></div></div><p id="dashboardClearOrdersStatus" role="status" aria-live="polite"></p><div id="dashboardRecentOrders"><p class="dashboard-empty">Carregando pedidos...</p></div>';
       overview.append(recent);
     }
     const host = document.getElementById("dashboardPanels");
@@ -141,19 +141,42 @@
     select(location.hash.startsWith("#painel/") ? location.hash.slice(8) : "overview", false);
     if (owner) {
       const target = document.getElementById("dashboardRecentOrders");
-      request("/api/admin/orders").then(({ orders }) => {
-        const labels = { pending: "Aguardando Pix", reported: "Pagamento informado", paid: "Pago", cancelled: "Cancelado", refunded: "Reembolsado" };
-        const latest = [...orders].sort((a, b) => b.created_at - a.created_at).slice(0, 5);
-        target.innerHTML = latest.length ? `<div class="admin-table-wrap"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Data</th><th>Valor</th><th>Status</th></tr></thead><tbody>${latest.map(o => `<tr><td><button class="dashboard-order-link" type="button" data-open-order="${esc(o.id)}">#${esc(o.id)}</button></td><td>${esc(o.customer?.name || "Cliente")}</td><td>${esc(new Date(o.created_at * 1000).toLocaleString("pt-BR"))}</td><td><strong>${money(o.total_cents)}</strong></td><td><span class="order-status" data-status="${esc(o.payment_status)}">${esc(labels[o.payment_status] || o.payment_status)}</span></td></tr>`).join("")}</tbody></table></div>` : '<p class="dashboard-empty">Nenhum pedido recebido ainda. As compras feitas na loja aparecerão aqui.</p>';
-        target.querySelectorAll("[data-open-order]").forEach(button => button.addEventListener("click", async () => {
-          await select("orders");
-          const order = reports.querySelector(`[data-save-order="${CSS.escape(button.dataset.openOrder)}"]`)?.closest("details");
-          if (order) {
-            order.open = true;
-            order.scrollIntoView({ behavior: "smooth", block: "center" });
-          }
-        }, { signal }));
-      }).catch(error => { target.innerHTML = `<p class="dashboard-empty">${esc(error.message)}</p>`; });
+      let recentRevision = 0;
+      const loadRecentOrders = () => {
+        const revision = ++recentRevision;
+        return request("/api/admin/orders").then(({ orders }) => {
+          if (revision !== recentRevision) return;
+          const labels = { pending: "Aguardando Pix", reported: "Pagamento informado", paid: "Pago", cancelled: "Cancelado", refunded: "Reembolsado" };
+          const latest = [...orders].sort((a, b) => b.created_at - a.created_at).slice(0, 5);
+          target.innerHTML = latest.length ? `<div class="admin-table-wrap"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Data</th><th>Valor</th><th>Status</th></tr></thead><tbody>${latest.map(o => `<tr><td><button class="dashboard-order-link" type="button" data-open-order="${esc(o.id)}">#${esc(o.id)}</button></td><td>${esc(o.customer?.name || "Cliente")}</td><td>${esc(new Date(o.created_at * 1000).toLocaleString("pt-BR"))}</td><td><strong>${money(o.total_cents)}</strong></td><td><span class="order-status" data-status="${esc(o.payment_status)}">${esc(labels[o.payment_status] || o.payment_status)}</span></td></tr>`).join("")}</tbody></table></div>` : '<p class="dashboard-empty">Nenhum pedido recebido ainda. As compras feitas na loja aparecerão aqui.</p>';
+          target.querySelectorAll("[data-open-order]").forEach(button => button.addEventListener("click", async () => {
+            await select("orders");
+            const order = reports.querySelector(`[data-save-order="${CSS.escape(button.dataset.openOrder)}"]`)?.closest("details");
+            if (order) {
+              order.open = true;
+              order.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+          }, { signal }));
+        }).catch(error => {
+          if (revision === recentRevision) target.innerHTML = `<p class="dashboard-empty">${esc(error.message)}</p>`;
+        });
+      };
+      window.addEventListener("panel-orders-updated", loadRecentOrders, { signal });
+      const clearButton = document.getElementById("dashboardClearOrders");
+      clearButton.addEventListener("click", async () => {
+        const status = document.getElementById("dashboardClearOrdersStatus");
+        clearButton.disabled = true;
+        status.textContent = "Limpando os pedidos do painel...";
+        try {
+          const result = await changeOrders("archive");
+          status.textContent = `${result.count} pedidos removidos do painel. Os pagamentos na gateway continuam iguais.`;
+        } catch (error) {
+          status.textContent = error.message;
+        } finally {
+          clearButton.disabled = false;
+        }
+      }, { signal });
+      loadRecentOrders();
     }
   };
 })();
