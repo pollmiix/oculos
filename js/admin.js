@@ -698,6 +698,25 @@ async function carregarRelatorioAdmin(view) {
           </div>
         </details>`;
       }).join("")}</div>` : "<p>Ainda não há pedidos registrados no servidor. Quando uma compra for enviada pela loja, os produtos escolhidos e seus detalhes aparecerão aqui.</p>";
+      target.insertAdjacentHTML("afterbegin", `<div class="admin-data-actions"><button class="btn btn-ghost" data-panel-orders="archive" type="button" ${orders.length ? "" : "disabled"}>Limpar pedidos do painel</button><button class="btn btn-ghost" data-panel-orders="restore" type="button">Restaurar pedidos arquivados</button></div><p>Limpar arquiva os pedidos e zera seus indicadores no painel. O histórico fica guardado e os pagamentos na gateway continuam iguais.</p>`);
+      target.querySelectorAll("[data-panel-orders]").forEach((button) => button.onclick = async () => {
+        const action = button.dataset.panelOrders;
+        target.querySelectorAll("[data-panel-orders]").forEach((control) => { control.disabled = true; });
+        try {
+          const response = await fetch("/api/admin/orders/panel", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRF-Token": adminCsrfToken },
+            body: JSON.stringify({ action })
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error || "Não foi possível atualizar os pedidos do painel.");
+          await carregarRelatorioAdmin("orders");
+          await carregarIndicadoresAdmin(Number(document.getElementById("dashboardPeriod")?.value || 30));
+        } catch (error) {
+          alert(error.message);
+          target.querySelectorAll("[data-panel-orders]").forEach((control) => { control.disabled = false; });
+        }
+      });
       target.querySelectorAll("[data-copy-pix]").forEach((button) => button.onclick = async () => {
         const code = button.closest(".order-pix")?.querySelector("textarea")?.value || "";
         try {

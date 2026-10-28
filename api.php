@@ -99,7 +99,7 @@ function initialize_database(PDO $pdo, array $config): void
 {
     // Keep table creation and housekeeping off the usual product request path.
     // Bump this version whenever the schema below changes.
-    $schemaVersion = 'php-20261026-gateway-tests-v2';
+    $schemaVersion = 'php-20261028-panel-archive-v1';
     try {
         $check = $pdo->prepare('SELECT `value`, updated_at FROM settings WHERE `key` = ?');
         $check->execute(['php_schema_version']);
@@ -118,6 +118,7 @@ function initialize_database(PDO $pdo, array $config): void
         "CREATE TABLE IF NOT EXISTS admins (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, username VARCHAR(50) NOT NULL UNIQUE, password_hash VARCHAR(255) NOT NULL, role VARCHAR(20) NOT NULL DEFAULT 'owner', active TINYINT NOT NULL DEFAULT 1, created_at BIGINT NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
         "CREATE TABLE IF NOT EXISTS sessions (token_hash CHAR(64) PRIMARY KEY, admin_id BIGINT UNSIGNED NOT NULL, csrf_token CHAR(64) NOT NULL, expires_at BIGINT NOT NULL, created_at BIGINT NOT NULL, INDEX idx_sessions_admin (admin_id), CONSTRAINT fk_sessions_admin FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
         "CREATE TABLE IF NOT EXISTS orders (id VARCHAR(100) PRIMARY KEY, transaction_id VARCHAR(120) NULL UNIQUE, analytics_session_id CHAR(36) NULL, created_at BIGINT NOT NULL, status VARCHAR(40) NOT NULL, payment_status VARCHAR(30) NOT NULL, payment_method VARCHAR(30) NOT NULL, total_cents BIGINT NOT NULL, customer_json LONGTEXT NOT NULL, items_json LONGTEXT NOT NULL, pix_payload LONGTEXT NULL, INDEX idx_orders_created (created_at), INDEX idx_orders_payment (payment_status)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+        "CREATE TABLE IF NOT EXISTS order_panel_archive (order_id VARCHAR(100) PRIMARY KEY, archived_at BIGINT NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
         "CREATE TABLE IF NOT EXISTS events (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, event_name VARCHAR(40) NOT NULL, happened_at BIGINT NOT NULL, session_id CHAR(36) NOT NULL, page_path VARCHAR(240) NOT NULL, product_id VARCHAR(120) NULL, source VARCHAR(180) NULL, device VARCHAR(30) NULL, browser VARCHAR(30) NULL, INDEX idx_events_date (happened_at), INDEX idx_events_session (session_id), INDEX idx_events_name (event_name)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
         "CREATE TABLE IF NOT EXISTS admin_audit (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, admin_id BIGINT UNSIGNED NOT NULL, action VARCHAR(80) NOT NULL, entity VARCHAR(80) NOT NULL, entity_id VARCHAR(120) NULL, happened_at BIGINT NOT NULL, INDEX idx_audit_admin (admin_id), CONSTRAINT fk_audit_admin FOREIGN KEY (admin_id) REFERENCES admins(id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
         "CREATE TABLE IF NOT EXISTS payment_transactions (transaction_id VARCHAR(120) PRIMARY KEY, amount BIGINT NOT NULL, external_ref VARCHAR(120) NOT NULL, created_at BIGINT NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
@@ -509,9 +510,42 @@ function update_payment(string $orderId, string $status, bool $byTransaction = f
     }
 }
 
-function orders_list(int $limit = 200): array
+function panel_orders_condition(): string
 {
-    $query = db()->prepare('SELECT * FROM orders ORDER BY created_at DESC LIMIT ?');
+    return 'NOT EXISTS (SELECT 1 FROM order_panel_archive WHERE order_id=orders.id)';
+}
+
+function archive_panel_orders(): never
+{
+    $session = require_admin(true, ['owner']);
+    $data = json_body(1024);
+    $action = $data['action'] ?? '';
+    if (!in_array($action, ['archive', 'restore'], true)) {
+        throw new InvalidArgumentException('Escolha limpar ou restaurar os pedidos do painel.');
+    }
+    $pdo = db();
+    $pdo->beginTransaction();
+    try {
+        if ($action === 'archive') {
+            $query = $pdo->prepare('INSERT IGNORE INTO order_panel_archive(order_id,archived_at) SELECT id,? FROM orders');
+            $query->execute([time()]);
+            $count = $query->rowCount();
+        } else {
+            $count = $pdo->exec('DELETE FROM order_panel_archive');
+        }
+        audit((int)$session['admin_id'], $action === 'archive' ? 'orders_panel_cleared' : 'orders_panel_restored', 'orders');
+        $pdo->commit();
+    } catch (Throwable $error) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        throw $error;
+    }
+    respond(200, ['success' => true, 'count' => $count]);
+}
+
+function orders_list(int $limit = 200, bool $includeArchived = false): array
+{
+    $where = $includeArchived ? '' : ' WHERE ' . panel_orders_condition();
+    $query = db()->prepare('SELECT * FROM orders' . $where . ' ORDER BY created_at DESC LIMIT ?');
     $query->bindValue(1, $limit, PDO::PARAM_INT);
     $query->execute();
     $result = [];
@@ -528,7 +562,8 @@ function product_report(): array
 {
     $store = store_value() ?? [];
     $sold = [];
-    foreach (db()->query("SELECT items_json FROM orders WHERE payment_status='paid'")->fetchAll() as $order) {
+    $visibleOrders = panel_orders_condition();
+    foreach (db()->query("SELECT items_json FROM orders WHERE payment_status='paid' AND {$visibleOrders}")->fetchAll() as $order) {
         foreach (json_decode($order['items_json'], true) ?: [] as $item) {
             if (isset($item['id'])) {
                 $sold[(string)$item['id']] = ($sold[(string)$item['id']] ?? 0) + max(0, (int)($item['quantity'] ?? 0));
@@ -559,7 +594,8 @@ function dashboard(int $days): array
     $days = max(1, min(365, $days));
     $start = time() - ($days - 1) * 86400;
     $pdo = db();
-    $query = $pdo->prepare("SELECT COUNT(*) AS n,SUM(CASE WHEN payment_status='paid' THEN total_cents ELSE 0 END) AS revenue,SUM(CASE WHEN payment_status IN ('pending','reported') THEN 1 ELSE 0 END) AS pending,SUM(CASE WHEN payment_status='paid' THEN 1 ELSE 0 END) AS paid FROM orders WHERE created_at>=?");
+    $visibleOrders = panel_orders_condition();
+    $query = $pdo->prepare("SELECT COUNT(*) AS n,SUM(CASE WHEN payment_status='paid' THEN total_cents ELSE 0 END) AS revenue,SUM(CASE WHEN payment_status IN ('pending','reported') THEN 1 ELSE 0 END) AS pending,SUM(CASE WHEN payment_status='paid' THEN 1 ELSE 0 END) AS paid FROM orders WHERE created_at>=? AND {$visibleOrders}");
     $query->execute([$start]);
     $orders = $query->fetch();
     $visitorsQuery = $pdo->prepare('SELECT COUNT(DISTINCT session_id) FROM events WHERE happened_at>=?');
@@ -568,11 +604,11 @@ function dashboard(int $days): array
     $store = store_value() ?? [];
     $products = $store['produtos'] ?? [];
     $lowStock = count(array_filter($products, static fn($item) => is_array($item) && is_numeric($item['estoque'] ?? null) && (int)$item['estoque'] <= 3));
-    $salesQuery = $pdo->prepare("SELECT DATE_FORMAT(FROM_UNIXTIME(created_at),'%Y-%m-%d') AS day,SUM(CASE WHEN payment_status='paid' THEN total_cents ELSE 0 END) AS cents,COUNT(*) AS orders FROM orders WHERE created_at>=? GROUP BY day ORDER BY day");
+    $salesQuery = $pdo->prepare("SELECT DATE_FORMAT(FROM_UNIXTIME(created_at),'%Y-%m-%d') AS day,SUM(CASE WHEN payment_status='paid' THEN total_cents ELSE 0 END) AS cents,COUNT(*) AS orders FROM orders WHERE created_at>=? AND {$visibleOrders} GROUP BY day ORDER BY day");
     $salesQuery->execute([$start]);
     $trafficQuery = $pdo->prepare("SELECT DATE_FORMAT(FROM_UNIXTIME(happened_at),'%Y-%m-%d') AS day,COUNT(DISTINCT session_id) AS visitors,COUNT(*) AS views FROM events WHERE happened_at>=? GROUP BY day ORDER BY day");
     $trafficQuery->execute([$start]);
-    $customers = (int)$pdo->query("SELECT COUNT(DISTINCT COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(customer_json,'$.email')),''),NULLIF(JSON_UNQUOTE(JSON_EXTRACT(customer_json,'$.phone')),''))) FROM orders")->fetchColumn();
+    $customers = (int)$pdo->query("SELECT COUNT(DISTINCT COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(customer_json,'$.email')),''),NULLIF(JSON_UNQUOTE(JSON_EXTRACT(customer_json,'$.phone')),''))) FROM orders WHERE {$visibleOrders}")->fetchColumn();
     $paid = (int)($orders['paid'] ?? 0);
     return ['revenueCents' => (int)($orders['revenue'] ?? 0), 'orders' => (int)$orders['n'],
         'pendingOrders' => (int)($orders['pending'] ?? 0), 'paidOrders' => $paid,
@@ -746,9 +782,13 @@ function route_request(): void
         require_admin(false, ['owner']);
         respond(200, ['orders' => orders_list()]);
     }
+    if ($method === 'POST' && $path === '/api/admin/orders/panel') {
+        archive_panel_orders();
+    }
     if ($method === 'GET' && $path === '/api/admin/customers') {
         require_admin(false, ['owner']);
-        $rows = $pdo->query("SELECT MAX(JSON_UNQUOTE(JSON_EXTRACT(customer_json,'$.name'))) AS name,JSON_UNQUOTE(JSON_EXTRACT(customer_json,'$.email')) AS email,JSON_UNQUOTE(JSON_EXTRACT(customer_json,'$.phone')) AS phone,COUNT(*) AS orders,MAX(created_at) AS last_order FROM orders WHERE COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(customer_json,'$.email')),''),NULLIF(JSON_UNQUOTE(JSON_EXTRACT(customer_json,'$.phone')),'')) IS NOT NULL GROUP BY COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(customer_json,'$.email')),''),NULLIF(JSON_UNQUOTE(JSON_EXTRACT(customer_json,'$.phone')),'')) ORDER BY last_order DESC LIMIT 300")->fetchAll();
+        $visibleOrders = panel_orders_condition();
+        $rows = $pdo->query("SELECT MAX(JSON_UNQUOTE(JSON_EXTRACT(customer_json,'$.name'))) AS name,JSON_UNQUOTE(JSON_EXTRACT(customer_json,'$.email')) AS email,JSON_UNQUOTE(JSON_EXTRACT(customer_json,'$.phone')) AS phone,COUNT(*) AS orders,MAX(created_at) AS last_order FROM orders WHERE {$visibleOrders} AND COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(customer_json,'$.email')),''),NULLIF(JSON_UNQUOTE(JSON_EXTRACT(customer_json,'$.phone')),'')) IS NOT NULL GROUP BY COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(customer_json,'$.email')),''),NULLIF(JSON_UNQUOTE(JSON_EXTRACT(customer_json,'$.phone')),'')) ORDER BY last_order DESC LIMIT 300")->fetchAll();
         respond(200, ['customers' => $rows]);
     }
     if ($method === 'GET' && $path === '/api/admin/products') {
@@ -1197,7 +1237,7 @@ function export_csv(string $kind): never
 {
     if ($kind === 'orders') {
         $rows = [['pedido', 'criado_em_unix_utc', 'status', 'pagamento', 'metodo', 'total_centavos', 'cliente', 'email', 'telefone', 'itens']];
-        foreach (orders_list(5000) as $order) {
+        foreach (orders_list(5000, true) as $order) {
             $customer = $order['customer'];
             $rows[] = [$order['id'], $order['created_at'], $order['status'], $order['payment_status'], $order['payment_method'],
                 $order['total_cents'], $customer['name'] ?? '', $customer['email'] ?? '', $customer['phone'] ?? '', $order['items']];
