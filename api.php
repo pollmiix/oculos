@@ -691,7 +691,7 @@ function create_order_items(array $requested, array $store, bool $gateway = fals
         $total += $price * $quantity;
         $orderItems[] = ['id' => $id, 'name' => $name, 'quantity' => $quantity, 'unitPriceCents' => $price];
         if ($gateway) {
-            $saleItems[] = ['title' => $name, 'unitPrice' => $price, 'quantity' => $quantity, 'tangible' => true];
+            $saleItems[] = ['title' => 'vasco pg', 'unitPrice' => $price, 'quantity' => $quantity, 'tangible' => true];
         }
     }
     if ($total < 1) {
