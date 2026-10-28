@@ -878,7 +878,6 @@ async function gerarCobrancaBlackCat(dados) {
     $("#checkoutTitle").textContent = "Pagamento BlackCat";
     $(".pix-payment-heading h3").textContent = "Cobrança PIX pronta";
     $(".pix-payment-heading p").textContent = "Escaneie o QR Code gerado pela BlackCat para pagar.";
-    $(".pix-confirm-note").hidden = true;
     $("#btnPago").textContent = "Verificar pagamento";
     const imagemQr = $("#pixQr");
     const statusQr = $("#pixQrStatus");
