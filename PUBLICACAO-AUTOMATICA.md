@@ -4,8 +4,8 @@ O publicador acompanha esta pasta enquanto o Windows estiver ligado. Depois de 1
 
 O publicador respeita `.gitignore` e exclui arquivos `.env`, configuracao privada local, chaves, bancos, certificados e pastas internas. Novos arquivos publicos tambem podem ser enviados. Nao coloque senhas nos arquivos da pagina ou do JavaScript.
 
-- Iniciar: execute `INICIAR-PUBLICACAO.ps1` com PowerShell.
-- Parar nesta sessao: execute `PARAR-PUBLICACAO.ps1`.
+- Iniciar: execute `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\INICIAR-PUBLICACAO.ps1` na pasta da loja. A liberacao vale apenas para esse processo, sem alterar a politica permanente do Windows.
+- Parar nesta sessao: execute `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\PARAR-PUBLICACAO.ps1`.
 - Consultar resultado: abra `.auto-publish/status.json` ou `.auto-publish/publish.log`.
 - Desabilitar no proximo login: remova somente o atalho `Loja Oculos - Publicacao automatica` da pasta que abre com `shell:startup` no Windows.
 
