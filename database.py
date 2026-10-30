@@ -107,6 +107,8 @@ def init_db(default_store=None):
             happened_at INTEGER NOT NULL
           );
         """)
+        import visitors
+        visitors.init_tables(db)
         if db.execute("SELECT 1 FROM settings WHERE key='store'").fetchone() is None and default_store:
             db.execute("INSERT INTO settings(key,value,updated_at) VALUES('store',?,?)",
                        (json.dumps(default_store, ensure_ascii=False), int(time.time())))

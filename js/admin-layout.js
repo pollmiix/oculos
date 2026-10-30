@@ -14,7 +14,7 @@
   };
   const icon = key => `<svg viewBox="0 0 24 24" aria-hidden="true">${icons[key] || icons.overview}</svg>`;
 
-  window.organizarPainel = ({ estado, role, report, request, money, escape: esc, changeOrders }) => {
+  window.organizarPainel = ({ estado, role, report, request, money, escape: esc, changeOrders, changeVisitors }) => {
     events?.abort();
     events = new AbortController();
     const signal = events.signal;
@@ -33,7 +33,8 @@
     reports.className = "admin-data dashboard-reports";
     reports.innerHTML = '<div class="dashboard-report-actions"><a id="dashboardExport" class="btn btn-ghost">Exportar CSV</a></div>';
     reports.append(document.getElementById("adminDataView"));
-    const panels = { overview, reports, privacy, accounts, settings, payments, catalog };
+    const visits = document.createElement("section");
+    const panels = { overview, reports, privacy, accounts, settings, payments, catalog, visits };
     Object.entries(panels).forEach(([key, panel]) => {
       panel.dataset.adminPanel = key;
       panel.remove();
@@ -45,7 +46,7 @@
     const entries = [
       ["overview", "Visão geral"], ["orders", "Vendas", true], ["catalog", "Produtos", true],
       ["pix", "Pix", true], ["gateway", "Gateway", true],
-      ["customers", "Clientes", true], ["analytics", "Visitantes"],
+      ["customers", "Clientes", true], ["visits", "Lista de visitas", true], ["analytics", "Relatórios de visitas"],
       ["settings", "Configurações", true], ["accounts", "Acessos", true], ["privacy", "Privacidade"]
     ].filter(([, , restricted]) => owner || !restricted);
     shell.innerHTML = `
@@ -75,7 +76,7 @@
     overview.append(details);
     const note = document.createElement("div");
     note.className = "dashboard-privacy-note";
-    note.innerHTML = `${icon("privacy")}<strong>Privacidade por padrão</strong><p>Catálogo, estoque e pedidos são compartilhados com a loja pelo servidor.</p><span>IP <b>Não coletado</b></span><span>Endereço <b>Usado para entrega</b></span>`;
+    note.innerHTML = `${icon("privacy")}<strong>Métricas com consentimento</strong><p>Visitas, IP e atividade são registrados após aceitar métricas. A lista detalhada é restrita ao proprietário.</p><span>Localização <b>Aproximada por IP</b></span><span>Endereço <b>Usado para entrega</b></span>`;
     overview.append(note);
     if (owner) {
       const recent = document.createElement("section");
@@ -89,13 +90,20 @@
       if (!owner && ["accounts", "settings", "payments", "catalog"].includes(key)) panel.dataset.ownerPanel = "true";
       host.append(panel);
     });
-    const titles = { overview: "Visão geral", orders: "Vendas", catalog: "Produtos", pix: "Pix", gateway: "Gateway", customers: "Clientes", analytics: "Visitantes", settings: "Configurações", accounts: "Acessos", privacy: "Privacidade", products: "Estoque e vendas" };
+    const visitorList = owner ? window.criarListaVisitas({ request, mutate: changeVisitors, escape: esc, signal }) : null;
+    if (visitorList) overview.insertBefore(visitorList.element, details);
+    const titles = { overview: "Visão geral", orders: "Vendas", catalog: "Produtos", pix: "Pix", gateway: "Gateway", customers: "Clientes", analytics: "Relatórios de visitas", visits: "Lista de visitas", settings: "Configurações", accounts: "Acessos", privacy: "Privacidade", products: "Estoque e vendas" };
     const reportKeys = ["orders", "customers", "analytics", "products"];
     const allowed = new Set(entries.map(([key]) => key));
     if (owner) allowed.add("products");
     function select(view, updateHash = true) {
       if (!allowed.has(view)) view = "overview";
       const panelKey = reportKeys.includes(view) ? "reports" : ["pix", "gateway"].includes(view) ? "payments" : view;
+      if (visitorList) {
+        if (view === "visits") visits.append(visitorList.element);
+        if (view === "overview") overview.insertBefore(visitorList.element, details);
+        visitorList.setActive(view === "overview" || view === "visits");
+      }
       Object.entries(panels).forEach(([key, panel]) => { panel.hidden = key !== panelKey || panel.dataset.ownerPanel === "true"; });
       document.getElementById("dashboardTitle").textContent = titles[view];
       shell.querySelectorAll("[data-dashboard-view]").forEach(button => {

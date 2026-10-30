@@ -104,9 +104,9 @@ function renderPainel() {
         <div class="admin-period">Periodo<select id="dashboardPeriod"><option value="7">7 dias</option><option value="30" selected>30 dias</option><option value="90">90 dias</option></select></div>
         <div id="adminMetrics" class="admin-metrics"><p>Carregando dados do servidor...</p></div><div id="adminCharts" class="admin-charts"></div>
         <div class="admin-data-actions"><button class="btn btn-ghost" data-admin-view="orders" data-owner-only>Pedidos</button><button class="btn btn-ghost" data-admin-view="customers" data-owner-only>Clientes</button><button class="btn btn-ghost" data-admin-view="analytics">Visitas e conversão</button><a data-owner-only class="btn btn-ghost" href="/api/admin/export.csv?kind=traffic">Exportar visitas CSV</a></div>
-        <div id="adminDataView" class="admin-data-view" aria-live="polite"><p>Relatórios com dados registrados. Endereços IP não são armazenados.</p></div>
+        <div id="adminDataView" class="admin-data-view" aria-live="polite"><p>Relatórios de visitas registradas com consentimento.</p></div>
       </section>
-      <section id="admin-privacy" class="admin-privacy"><h2>Privacidade e seguran&#231;a</h2><p>O painel registra opera&#231;&#245;es administrativas, protege rotas por sess&#227;o e CSRF e n&#227;o grava IPs. Analytics s&#243; &#233; enviado ap&#243;s consentimento; eventos pseud&#244;nimos s&#227;o removidos conforme a reten&#231;&#227;o do servidor.</p><p>Contatos e endere&#231;os de entrega s&#227;o usados para processar pedidos e ficam dispon&#237;veis apenas a administradores autenticados.</p></section>
+      <section id="admin-privacy" class="admin-privacy"><h2>Privacidade e seguran&#231;a</h2><p>O painel registra opera&#231;&#245;es administrativas, protege rotas por sess&#227;o e CSRF e restringe os IPs da lista de visitas ao propriet&#225;rio. Analytics s&#243; &#233; enviado ap&#243;s consentimento; eventos pseud&#244;nimos s&#227;o removidos conforme a reten&#231;&#227;o do servidor.</p><p>Contatos e endere&#231;os de entrega s&#227;o usados para processar pedidos e ficam dispon&#237;veis apenas a administradores autenticados.</p></section>
       <div class="admin-editor" data-owner-only>
       <section class="admin-privacy"><h2>Contas de an&#225;lise</h2><p>Estas contas acessam o resumo e os relat&#243;rios de visitantes. N&#227;o podem consultar pedidos, clientes ou configura&#231;&#245;es da loja.</p><div class="admin-account-form"><label>Usu&#225;rio<input id="newAdminUsername" autocomplete="off" minlength="3" maxlength="50"></label><label>Senha tempor&#225;ria (m&#237;nimo 12 caracteres)<input id="newAdminPassword" type="password" autocomplete="new-password" minlength="12"></label><button class="btn btn-ghost" id="createAnalyst" type="button">Criar conta de an&#225;lise</button></div><div id="adminAccountsList"></div></section>
       <section class="admin-editor-section">
@@ -325,7 +325,7 @@ function renderPainel() {
     renderPainel();
   };
   renderProdutos();
-  window.organizarPainel({ estado, role: adminRole, report: carregarRelatorioAdmin, request: adminFetch, money: dinheiroAdmin, escape: esc, changeOrders: alterarPedidosPainel });
+  window.organizarPainel({ estado, role: adminRole, report: carregarRelatorioAdmin, request: adminFetch, money: dinheiroAdmin, escape: esc, changeOrders: alterarPedidosPainel, changeVisitors: alterarVisitaPainel });
   if (adminRole === "owner") window.iniciarConexaoGateway(adminCsrfToken, () => {
     estado.pagamento.metodo = "gateway";
     estado.pagamento.gateway.provedor = "BlackCat";
@@ -608,6 +608,16 @@ async function adminFetch(path) {
   return response.json();
 }
 
+async function alterarVisitaPainel(data) {
+  const response = await fetch("/api/admin/visitors", {
+    method: "POST", headers: { "Content-Type": "application/json", "X-CSRF-Token": adminCsrfToken },
+    body: JSON.stringify(data)
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || "Não foi possível atualizar esta visita.");
+  return result;
+}
+
 function dinheiroAdmin(cents) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((Number(cents) || 0) / 100);
 }
@@ -761,7 +771,7 @@ async function carregarRelatorioAdmin(view) {
       const events = Object.entries(a.counts || {}).map(([name, count]) => `<li>${esc(name)}: <strong>${count}</strong></li>`).join("");
       const sections = (title, rows, columns) => `<h3>${title}</h3><div class="admin-table-wrap"><table><thead><tr>${columns.map((c) => `<th>${c[0]}</th>`).join("")}</tr></thead><tbody>${rows.length ? rows.map((row) => `<tr>${columns.map((c) => `<td>${esc(row[c[1]] ?? "")}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="${columns.length}">Sem dados neste periodo.</td></tr>`}</tbody></table></div>`;
       const visitRows = (a.latest || []).map((row) => ({ time: new Date(row.happened_at * 1000).toLocaleString("pt-BR"), event: row.event_name, page: row.page_path, source: row.source, device: row.device, browser: row.browser, session: String(row.session_id).slice(0, 10) }));
-      target.innerHTML = filterMarkup + `<p>Somente visitantes que aceitaram analytics. Enderecos IP nao sao coletados.</p><ul>${events || "<li>Nenhum evento coletado.</li>"}</ul>` + sections("Paginas", a.pages || [], [["Pagina", "page_path"], ["Visualizacoes", "views"], ["Visitantes", "visitors"]]) + sections("Produtos", a.products || [], [["Produto", "product_id"], ["Visualizacoes", "views"], ["Visitantes", "visitors"]]) + sections("Origem", a.sources || [], [["Origem", "source"], ["Visitantes", "visitors"]]) + sections("Dispositivos e navegadores", a.devices || [], [["Dispositivo", "device"], ["Navegador", "browser"], ["Visitantes", "visitors"]]) + sections("Visitas recentes (sessao pseudonima)", visitRows, [["Data", "time"], ["Evento", "event"], ["Pagina", "page"], ["Origem", "source"], ["Dispositivo", "device"], ["Navegador", "browser"], ["Sessao", "session"]]);
+      target.innerHTML = filterMarkup + `<p>Somente visitantes que aceitaram métricas. A lista detalhada de visitas está disponível ao proprietário na visão geral.</p><ul>${events || "<li>Nenhum evento coletado.</li>"}</ul>` + sections("Paginas", a.pages || [], [["Pagina", "page_path"], ["Visualizacoes", "views"], ["Visitantes", "visitors"]]) + sections("Produtos", a.products || [], [["Produto", "product_id"], ["Visualizacoes", "views"], ["Visitantes", "visitors"]]) + sections("Origem", a.sources || [], [["Origem", "source"], ["Visitantes", "visitors"]]) + sections("Dispositivos e navegadores", a.devices || [], [["Dispositivo", "device"], ["Navegador", "browser"], ["Visitantes", "visitors"]]) + sections("Visitas recentes (sessao pseudonima)", visitRows, [["Data", "time"], ["Evento", "event"], ["Pagina", "page"], ["Origem", "source"], ["Dispositivo", "device"], ["Navegador", "browser"], ["Sessao", "session"]]);
       document.getElementById("applyAnalyticsFilters").onclick = () => carregarRelatorioAdmin("analytics");
     }
   } catch (error) { target.innerHTML = `<p>${esc(error.message)}</p>`; }

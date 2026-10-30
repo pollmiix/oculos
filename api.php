@@ -12,6 +12,7 @@ require_once __DIR__ . '/store-policies.php';
 require_once __DIR__ . '/store-pricing.php';
 require_once __DIR__ . '/blackcat-gateway.php';
 require_once __DIR__ . '/blackcat-test-charge.php';
+require_once __DIR__ . '/visitors.php';
 
 const SESSION_SECONDS = 28800;
 const MAX_BODY_SIZE = 8388608;
@@ -99,7 +100,7 @@ function initialize_database(PDO $pdo, array $config): void
 {
     // Keep table creation and housekeeping off the usual product request path.
     // Bump this version whenever the schema below changes.
-    $schemaVersion = 'php-20261028-panel-archive-v1';
+    $schemaVersion = 'php-20261030-visitors-v1';
     try {
         $check = $pdo->prepare('SELECT `value`, updated_at FROM settings WHERE `key` = ?');
         $check->execute(['php_schema_version']);
@@ -125,6 +126,8 @@ function initialize_database(PDO $pdo, array $config): void
         "CREATE TABLE IF NOT EXISTS gateway_test_charges (request_id CHAR(36) PRIMARY KEY, admin_id BIGINT UNSIGNED NOT NULL, transaction_id VARCHAR(120) NULL UNIQUE, external_ref VARCHAR(120) NOT NULL UNIQUE, amount BIGINT NOT NULL, status VARCHAR(30) NOT NULL, payload_hash CHAR(64) NOT NULL, payment_json LONGTEXT NULL, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
         "CREATE TABLE IF NOT EXISTS api_rate_limits (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, bucket_key CHAR(64) NOT NULL, happened_at BIGINT NOT NULL, INDEX idx_rate_bucket (bucket_key, happened_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
     ];
+    $schema[] = "CREATE TABLE IF NOT EXISTS visitor_sessions (session_id CHAR(36) PRIMARY KEY,first_seen BIGINT NOT NULL,last_seen BIGINT NOT NULL,ip_address VARCHAR(45) NOT NULL,platform VARCHAR(30) NOT NULL,browser VARCHAR(30) NOT NULL,device VARCHAR(30) NOT NULL,page_path VARCHAR(240) NOT NULL,source VARCHAR(180) NOT NULL,event_name VARCHAR(40) NOT NULL,product_id VARCHAR(120) NOT NULL,location VARCHAR(250) NOT NULL,INDEX idx_visitors_seen(last_seen),INDEX idx_visitors_ip(ip_address)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+    $schema[] = "CREATE TABLE IF NOT EXISTS visitor_ip_blocks (ip_address VARCHAR(45) PRIMARY KEY,created_at BIGINT NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
     foreach ($schema as $statement) {
         $pdo->exec($statement);
     }
@@ -147,6 +150,7 @@ function initialize_database(PDO $pdo, array $config): void
     $retention = max(30, min(365, (int)($config['analytics_retention_days'] ?? 90)));
     $delete = $pdo->prepare('DELETE FROM events WHERE happened_at < ?');
     $delete->execute([time() - $retention * 86400]);
+    $pdo->prepare('DELETE FROM visitor_sessions WHERE last_seen < ?')->execute([time() - $retention * 86400]);
     if ($count > 0) {
         $marker = $pdo->prepare('INSERT INTO settings (`key`, `value`, updated_at) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`), updated_at = VALUES(updated_at)');
         $marker->execute(['php_schema_version', $schemaVersion, time()]);
@@ -189,7 +193,7 @@ function rate_limited(string $bucket, int $limit, int $window): bool
     if (strlen($secret) < 32) {
         throw new RuntimeException('Configure app_secret com pelo menos 32 caracteres aleatórios.');
     }
-    $ip = (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+    $ip = visitor_ip() ?: 'unknown';
     $key = hash_hmac('sha256', $bucket . '|' . $ip, $secret);
     $pdo = db();
     $remove = $pdo->prepare('DELETE FROM api_rate_limits WHERE happened_at < ?');
@@ -741,6 +745,21 @@ function route_request(): void
     $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
     $path = rawurldecode(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/');
     $pdo = db();
+    if (str_starts_with($path, '/api/') && !str_starts_with($path, '/api/admin/')
+        && !str_starts_with($path, '/api/webhooks/') && $path !== '/api/health' && visitor_blocked(visitor_ip())) {
+        respond(403, ['error' => 'O acesso deste IP à loja foi bloqueado. Entre em contato com o atendimento.', 'blocked' => true]);
+    }
+    if ($path === '/api/admin/visitors' && $method === 'GET') {
+        require_admin(false, ['owner']);
+        respond(200, visitor_list((int)($_GET['page'] ?? 1), (string)($_GET['filter'] ?? '')));
+    }
+    if ($path === '/api/admin/visitors' && $method === 'POST') {
+        $session = require_admin(true, ['owner']);
+        $data = json_body(4096);
+        visitor_action($data);
+        audit((int)$session['admin_id'], 'visitor_' . (string)$data['action'], 'visitor', $data['sessionId'] ?? null);
+        respond(200, ['success' => true]);
+    }
     if ($method === 'GET' && $path === '/merchant-feed.xml') {
         send_merchant_feed();
     }
@@ -948,7 +967,7 @@ function collect_event(): never
     }
     $data = json_body(12288);
     $name = $data['name'] ?? '';
-    if (!in_array($name, ['page_view', 'view_item', 'search', 'click_buy', 'add_to_cart', 'begin_checkout'], true)) {
+    if (!in_array($name, ['page_view', 'view_item', 'search', 'click_buy', 'add_to_cart', 'begin_checkout', 'heartbeat'], true)) {
         throw new InvalidArgumentException('Evento inválido.');
     }
     $sessionId = (string)($data['sessionId'] ?? '');
@@ -959,6 +978,10 @@ function collect_event(): never
     if (!str_starts_with($page, '/') || str_contains($page, '?') || str_contains($page, '#')) {
         throw new InvalidArgumentException('Página inválida.');
     }
+    $data['sessionId'] = strtolower($sessionId);
+    $data['page'] = $page;
+    record_visitor($data);
+    if ($name === 'heartbeat') respond(202, ['accepted' => true]);
     $insert = db()->prepare('INSERT INTO events(event_name,happened_at,session_id,page_path,product_id,source,device,browser) VALUES(?,?,?,?,?,?,?,?)');
     $insert->execute([$name, time(), strtolower($sessionId), $page, substr((string)($data['productId'] ?? ''), 0, 120) ?: null,
         substr((string)($data['source'] ?? 'direct'), 0, 180), substr((string)($data['device'] ?? 'unknown'), 0, 30),

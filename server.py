@@ -20,6 +20,7 @@ from urllib.parse import quote
 from xml.sax.saxutils import escape
 
 import database
+import visitors
 
 
 ROOT = Path(__file__).resolve().parent
@@ -235,6 +236,17 @@ class StoreHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         path = unquote(urlparse(self.path).path)
+        if self.visitor_access_blocked(path):
+            return
+        if path == "/api/admin/visitors":
+            if self.require_admin(roles=("owner",)) is not None:
+                params = parse_qs(urlparse(self.path).query)
+                try:
+                    page = int(params.get("page", ["1"])[0])
+                except ValueError:
+                    page = 1
+                send_json(self, 200, visitors.listing(page, params.get("filter", [""])[0]))
+            return
         public_base = os.environ.get("PUBLIC_BASE_URL", "").strip().rstrip("/")
         parsed_base = urlparse(public_base)
         if path == "/robots.txt":
@@ -264,7 +276,7 @@ class StoreHandler(SimpleHTTPRequestHandler):
             return
         segments = [segment.lower() for segment in path.split("/") if segment]
         if any(segment.startswith(".") for segment in segments) or any(
-                segment in {"server.py", "database.py"} or segment.endswith((".sqlite", ".sqlite3", ".db"))
+                segment in {"server.py", "database.py", "visitors.py"} or segment.endswith((".sqlite", ".sqlite3", ".db"))
                 for segment in segments):
             send_json(self, 404, {"error": "Não encontrado."})
             return
@@ -324,6 +336,19 @@ class StoreHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         path = urlparse(self.path).path
+        if self.visitor_access_blocked(path):
+            return
+        if path == "/api/admin/visitors":
+            session = self.require_admin(write=True, roles=("owner",))
+            if session is not None:
+                try:
+                    data = self.read_json_body(4096)
+                    visitors.action(data)
+                    database.audit(session["admin_id"], "visitor_" + data["action"], "visitor", data.get("sessionId"))
+                    send_json(self, 200, {"success": True})
+                except (ValueError, TypeError):
+                    send_json(self, 400, {"error": "Não foi possível atualizar esta visita. Confira os dados e tente novamente."})
+            return
         if path == "/api/admin/login":
             self.admin_login()
             return
@@ -501,6 +526,13 @@ class StoreHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def visitor_access_blocked(self, path):
+        if (path.startswith("/api/") and not path.startswith(("/api/admin/", "/api/webhooks/"))
+                and path != "/api/health" and visitors.is_blocked(self.client_address[0])):
+            send_json(self, 403, {"error": "O acesso deste IP à loja foi bloqueado. Entre em contato com o atendimento.", "blocked": True})
+            return True
+        return False
+
     def collect_event(self):
         if too_many_requests(self.client_address[0], "analytics", 120, 60):
             send_json(self, 429, {"error": "Aguarde antes de enviar novos eventos."})
@@ -508,7 +540,7 @@ class StoreHandler(SimpleHTTPRequestHandler):
         try:
             data = self.read_json_body(12 * 1024)
             name = data.get("name")
-            if name not in {"page_view", "view_item", "search", "click_buy", "add_to_cart", "begin_checkout"}:
+            if name not in {"page_view", "view_item", "search", "click_buy", "add_to_cart", "begin_checkout", "heartbeat"}:
                 raise ValueError("Evento inválido.")
             session_id = str(uuid.UUID(str(data.get("sessionId", ""))))
             page_path = str(data.get("page", "/"))[:240]
@@ -518,7 +550,10 @@ class StoreHandler(SimpleHTTPRequestHandler):
             source = str(data.get("source", "direct"))[:180]
             device = str(data.get("device", "unknown"))[:30]
             browser = str(data.get("browser", "unknown"))[:30]
-            database.record_event(name, session_id, page_path, product_id, source, device, browser)
+            data.update(sessionId=session_id, page=page_path)
+            visitors.record(data, self.client_address[0], self.headers.get("User-Agent", ""))
+            if name != "heartbeat":
+                database.record_event(name, session_id, page_path, product_id, source, device, browser)
         except (ValueError, TypeError, sqlite3.Error) as error:
             send_json(self, 400, {"error": str(error) or "Evento inválido."})
             return
