@@ -921,6 +921,26 @@ async function copiarPix() {
   }
 }
 
+const conversoesCompraEnviadas = new Set();
+
+function registrarConversaoCompra(transactionId, amountCents) {
+  const id = String(transactionId || "");
+  const valor = Number(amountCents) / 100;
+  if (!id || !Number.isFinite(valor) || valor <= 0
+      || conversoesCompraEnviadas.has(id) || typeof window.gtag !== "function") return;
+  try {
+    window.gtag('event', 'conversion', {
+      'send_to': 'AW-18478249345/_woDCKbD764dEIHrjutE',
+      'value': valor,
+      'currency': 'BRL',
+      'transaction_id': id
+    });
+    conversoesCompraEnviadas.add(id);
+  } catch (erro) {
+    console.warn("Nao foi possivel enviar a conversao de compra.");
+  }
+}
+
 async function confirmarPagamento() {
   if (!pedidoAtual) {
     alert("Gere o PIX antes de confirmar.");
@@ -943,6 +963,7 @@ async function confirmarPagamento() {
         return;
       }
       pedidoAtual.status = "PAID";
+      registrarConversaoCompra(pedidoAtual.transactionId, result.data.amount);
     } catch (erro) {
       statusPagamento.textContent = `Não foi possível confirmar agora: ${erro.message}`;
       return;
