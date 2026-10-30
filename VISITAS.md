@@ -4,8 +4,8 @@ Entre em `admin.php` como proprietário e abra **Visão geral** ou **Lista de vi
 A tabela mostra uma linha por sessão de navegação, com última atividade, IP, sistema,
 dispositivo, navegador, status online, etapa/produto, página, origem e localização aproximada.
 Tem 25 registros por página, filtros e atualização automática a cada 1 segundo,
-que pode ser desligada. Uma sessão fica online enquanto teve atividade nos últimos 90 segundos;
-o navegador visível envia uma atualização de presença a cada 30 segundos.
+que pode ser desligada. Uma sessão fica online enquanto teve atividade nos últimos 10 segundos;
+o navegador visível envia uma atualização de presença a cada segundo.
 
 Os novos registros começam quando o visitante aceita as métricas. O aviso e a política
 foram atualizados para informar a coleta de IP; visitantes que aceitaram a versão anterior

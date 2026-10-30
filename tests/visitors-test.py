@@ -43,7 +43,7 @@ class VisitorTests(unittest.TestCase):
         self.assertEqual(row['browser'], 'Chrome')
         self.assertTrue(row['online'])
         with database.connect() as db:
-            db.execute('UPDATE visitor_sessions SET last_seen=?', (int(time.time()) - 100,))
+            db.execute('UPDATE visitor_sessions SET last_seen=?', (int(time.time()) - 11,))
         self.assertFalse(visitors.listing()['visits'][0]['online'])
         for _ in range(27):
             self.record(session=str(uuid.uuid4()))

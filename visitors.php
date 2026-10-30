@@ -64,7 +64,7 @@ function visitor_list(int $page, string $filter = ''): array
 {
     $pdo = db();
     $where = match ($filter) {
-        'online' => 'v.last_seen>=' . (time() - 90) . ' AND b.ip_address IS NULL',
+        'online' => 'v.last_seen>=' . (time() - 10) . ' AND b.ip_address IS NULL',
         'blocked' => 'b.ip_address IS NOT NULL',
         default => '1=1',
     };
@@ -80,7 +80,7 @@ function visitor_list(int $page, string $filter = ''): array
     foreach ((store_value()['produtos'] ?? []) as $product) $products[(string)$product['id']] = $product['nome'] ?? '';
     foreach ($rows as &$row) {
         $row['blocked'] = $row['blocked_ip'] !== null;
-        $row['online'] = !$row['blocked'] && (int)$row['last_seen'] >= time() - 90;
+        $row['online'] = !$row['blocked'] && (int)$row['last_seen'] >= time() - 10;
         $row['product_name'] = $products[$row['product_id']] ?? $row['product_id'];
         if ($row['product_name'] === '' && $row['order_id']) {
             $items = json_decode($row['items_json'] ?? '[]', true);
@@ -89,7 +89,7 @@ function visitor_list(int $page, string $filter = ''): array
         unset($row['blocked_ip'], $row['items_json']);
     }
     unset($row);
-    $online = (int)$pdo->query('SELECT COUNT(*)' . $join . ' WHERE v.last_seen>=' . (time() - 90) . ' AND b.ip_address IS NULL')->fetchColumn();
+    $online = (int)$pdo->query('SELECT COUNT(*)' . $join . ' WHERE v.last_seen>=' . (time() - 10) . ' AND b.ip_address IS NULL')->fetchColumn();
     return ['visits' => $rows, 'page' => $page, 'pages' => $pages, 'total' => $total,
         'summary' => ['visits' => (int)$pdo->query('SELECT COUNT(*) FROM visitor_sessions')->fetchColumn(),
             'online' => $online, 'blocked' => (int)$pdo->query('SELECT COUNT(*) FROM visitor_ip_blocks')->fetchColumn()], 'serverTime' => time()];

@@ -43,6 +43,10 @@ check_visit($result['total'] === 1 && $result['summary']['online'] === 1, 'Heart
 check_visit($result['visits'][0]['event_name'] === 'view_item', 'Heartbeat overwrote the stage');
 check_visit($result['visits'][0]['product_name'] === 'Óculos de teste', 'Product name missing');
 check_visit($result['visits'][0]['platform'] === 'Windows' && $result['visits'][0]['browser'] === 'Chrome', 'Agent detection failed');
+$testDb->prepare('UPDATE visitor_sessions SET last_seen=?')->execute([time() - 11]);
+check_visit(visitor_list(1)['summary']['online'] === 0, 'A stale visitor must go offline after 10 seconds');
+record_visitor(array_replace($event, ['name' => 'heartbeat']));
+check_visit(visitor_list(1)['summary']['online'] === 1, 'A new heartbeat must restore online presence');
 putenv('VERCEL=1');
 $_SERVER['HTTP_X_VERCEL_FORWARDED_FOR'] = '2001:db8::1';
 $_SERVER['HTTP_X_VERCEL_IP_CITY'] = 'S%C3%A3o%20Paulo';

@@ -3,6 +3,7 @@
   const SESSION = "mn_analytics_session_v1";
   let sessionId = null;
   let currentProductId = "";
+  let heartbeatPending = false;
 
   function getSession() {
     if (sessionId) return sessionId;
@@ -23,7 +24,7 @@
 
   function track(name, details = {}) {
     if (name === "view_item") currentProductId = details.productId || "";
-    if (!consented()) return;
+    if (!consented() || (name === "heartbeat" && heartbeatPending)) return;
     const id = getSession();
     if (!id) return;
     const referrer = document.referrer;
@@ -32,7 +33,8 @@
     const agent = navigator.userAgent;
     const device = /tablet|ipad/i.test(agent) ? "tablet" : /mobile|android|iphone/i.test(agent) ? "mobile" : "desktop";
     const browser = /edg\//i.test(agent) ? "edge" : /firefox\//i.test(agent) ? "firefox" : /chrome\//i.test(agent) ? "chrome" : /safari\//i.test(agent) ? "safari" : "other";
-    fetch("/api/events", { method: "POST", headers: { "Content-Type": "application/json" }, keepalive: true,
+    if (name === "heartbeat") heartbeatPending = true;
+    return fetch("/api/events", { method: "POST", headers: { "Content-Type": "application/json" }, keepalive: true,
       body: JSON.stringify({ name, sessionId: id, page: location.pathname, productId: details.productId || currentProductId, source, device, browser })
     }).then(async response => {
       if (response.status !== 403) return;
@@ -44,7 +46,7 @@
       notice.textContent = result.error;
       notice.style.cssText = "position:fixed;inset:0;z-index:20000;display:grid;place-items:center;padding:40px;background:#111;color:#fff;font:18px/1.6 system-ui;text-align:center";
       document.body.append(notice);
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => { if (name === "heartbeat") heartbeatPending = false; });
   }
 
   function showConsent(force = false) {
@@ -69,10 +71,10 @@
   }
 
   window.storeAnalytics = { track, hasConsent: consented, sessionId: () => consented() ? getSession() : null };
-  setInterval(() => { if (!document.hidden) track("heartbeat"); }, 30000);
+  if (consented()) track("page_view"); else if (!hasChoice()) showConsent();
+  setInterval(() => { if (!document.hidden) track("heartbeat"); }, 1000);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) track("heartbeat"); });
   document.addEventListener("DOMContentLoaded", () => {
-    if (consented()) track("page_view"); else if (!hasChoice()) showConsent();
     document.querySelectorAll("[data-open-consent]").forEach((control) => {
       control.addEventListener("click", (event) => {
         event.preventDefault();

@@ -134,7 +134,7 @@ async function main() {
     await page.waitForFunction(() => !document.querySelector('#analyticsConsent'));
     await Promise.all([
       page.waitForResponse(response => response.url().endsWith('/api/events') && response.request().postDataJSON().name === 'heartbeat'),
-      page.clock.fastForward(31000)
+      page.clock.fastForward(1000)
     ]);
     assert.equal(collectedEvents[0].name, 'page_view');
     assert.equal(collectedEvents[0].productId, 'test-product');

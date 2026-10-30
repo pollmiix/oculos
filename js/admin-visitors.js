@@ -19,7 +19,7 @@
       <th>Bloqueio</th><th>Ação</th><th>Última atividade</th><th>IP</th><th>Dispositivo</th><th>Navegador</th><th>Status</th><th>Etapa / produto</th><th>Página / link</th><th>Proveniente</th><th>Localização aprox. (IP)</th>
       </tr></thead><tbody><tr><td colspan="11">Carregando visitas...</td></tr></tbody></table></div>
       <div class="visitor-pagination"><button type="button" class="btn btn-ghost" data-visit-prev>‹ Anterior</button><span data-visit-page></span><button type="button" class="btn btn-ghost" data-visit-next>Próxima ›</button></div>
-      <p class="visitor-footnote">Visitas registradas após aceitar métricas. Online: atividade nos últimos 90 segundos. Localização por IP é aproximada e depende dos dados da hospedagem.</p>`;
+      <p class="visitor-footnote">Visitas registradas após aceitar métricas. Presença ao vivo: atualização a cada segundo; offline após 10 segundos sem sinal. Localização por IP é aproximada e depende dos dados da hospedagem.</p>`;
     const find = selector => element.querySelector(selector);
     const status = find('.visitor-message');
     let page = 1;

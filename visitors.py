@@ -62,7 +62,7 @@ def record(data, ip, agent):
 
 def listing(page=1, filter_name=""):
     now = int(time.time())
-    where = {"online": f"v.last_seen>={now - 90} AND b.ip_address IS NULL",
+    where = {"online": f"v.last_seen>={now - 10} AND b.ip_address IS NULL",
              "blocked": "b.ip_address IS NOT NULL"}.get(filter_name, "1=1")
     join = " FROM visitor_sessions v LEFT JOIN visitor_ip_blocks b ON b.ip_address=v.ip_address"
     with database.connect() as db:
@@ -78,14 +78,14 @@ def listing(page=1, filter_name=""):
         for item in rows:
             row = dict(item)
             row["blocked"] = row.pop("blocked_ip") is not None
-            row["online"] = not row["blocked"] and row["last_seen"] >= now - 90
+            row["online"] = not row["blocked"] and row["last_seen"] >= now - 10
             row["product_name"] = products.get(row["product_id"], row["product_id"])
             items = json.loads(row.pop("items_json") or "[]")
             if not row["product_name"] and row["order_id"]:
                 row["product_name"] = " · ".join(item.get("name", "") for item in items if isinstance(item, dict))
             visits.append(row)
         summary = {"visits": db.execute("SELECT COUNT(*) FROM visitor_sessions").fetchone()[0],
-                   "online": db.execute("SELECT COUNT(*)" + join + " WHERE v.last_seen>=? AND b.ip_address IS NULL", (now - 90,)).fetchone()[0],
+                   "online": db.execute("SELECT COUNT(*)" + join + " WHERE v.last_seen>=? AND b.ip_address IS NULL", (now - 10,)).fetchone()[0],
                    "blocked": db.execute("SELECT COUNT(*) FROM visitor_ip_blocks").fetchone()[0]}
     return dict(visits=visits, page=page, pages=pages, total=total, summary=summary, serverTime=now)
 
