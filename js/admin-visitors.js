@@ -13,7 +13,7 @@
       <button type="button" class="btn btn-ghost" data-visit-unblock-all>Desbloquear todos os IPs</button></div></div>
       <div class="visitor-summary" aria-label="Resumo de visitas"></div>
       <div class="visitor-controls"><label>Mostrar <select data-visit-filter><option value="">Todas as visitas</option><option value="online">Pessoas online</option><option value="blocked">Visitas bloqueadas</option></select></label>
-      <label class="visitor-auto"><input type="checkbox" data-visit-auto checked> Atualização em tempo real <small>A cada 15 segundos</small></label></div>
+      <label class="visitor-auto"><input type="checkbox" data-visit-auto checked> Atualização em tempo real <small>A cada 1 segundo</small></label></div>
       <p class="visitor-message" role="status" aria-live="polite"></p>
       <div class="admin-table-wrap visitor-table-wrap"><table class="visitor-table"><thead><tr>
       <th>Bloqueio</th><th>Ação</th><th>Última atividade</th><th>IP</th><th>Dispositivo</th><th>Navegador</th><th>Status</th><th>Etapa / produto</th><th>Página / link</th><th>Proveniente</th><th>Localização aprox. (IP)</th>
@@ -113,7 +113,7 @@
     const timer = setInterval(() => {
       if (!element.isConnected) { clearInterval(timer); return; }
       if (active && !document.hidden && find('[data-visit-auto]').checked) load();
-    }, 15000);
+    }, 1000);
     signal.addEventListener('abort', () => { clearInterval(timer); revision++; }, { once: true });
     document.addEventListener('visibilitychange', () => { if (active && !document.hidden && find('[data-visit-auto]').checked) load(); }, { signal });
     return { element, setActive(value) { active = value; if (active) load(); } };

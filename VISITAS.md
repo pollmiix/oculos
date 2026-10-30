@@ -3,7 +3,7 @@
 Entre em `admin.php` como proprietário e abra **Visão geral** ou **Lista de visitas**.
 A tabela mostra uma linha por sessão de navegação, com última atividade, IP, sistema,
 dispositivo, navegador, status online, etapa/produto, página, origem e localização aproximada.
-Tem 25 registros por página, filtros e atualização automática a cada 15 segundos,
+Tem 25 registros por página, filtros e atualização automática a cada 1 segundo,
 que pode ser desligada. Uma sessão fica online enquanto teve atividade nos últimos 90 segundos;
 o navegador visível envia uma atualização de presença a cada 30 segundos.
 
