@@ -71,8 +71,8 @@ async function main() {
       const el = document.querySelector(selector);
       return el && !el.paused && el.currentTime > 0.05 && el.videoWidth > 0 && el.readyState >= 2;
     }, selector, { timeout: 15000 });
-    const state = await page.locator(selector).evaluate(el => ({ muted: el.muted, inline: el.playsInline, error: el.error?.code || null }));
-    assert.deepEqual(state, { muted: true, inline: true, error: null });
+    const state = await page.locator(selector).evaluate(el => ({ muted: el.muted, inline: el.playsInline, loop: el.loop, controls: el.controls, autoplay: el.autoplay, error: el.error?.code || null }));
+    assert.deepEqual(state, { muted: true, inline: true, loop: true, controls: false, autoplay: true, error: null });
   }
   try {
     for (const [name, options] of [
@@ -88,6 +88,17 @@ async function main() {
         await page.goto(base + '/index.html', { waitUntil: 'domcontentloaded' });
         await page.locator('.hero').scrollIntoViewIfNeeded();
         await playing(page, '.hero-video');
+        assert.equal(await page.locator('.video-play-button').count(), 0, 'The video must not require a play button');
+        if (name === 'iphone') {
+          await page.locator('.hero-video').evaluate(video => { video.currentTime = video.duration - 0.2; });
+          await page.waitForFunction(() => {
+            const video = document.querySelector('.hero-video');
+            return video.currentTime < 1 && !video.paused;
+          }, null, { timeout: 5000 });
+          await page.locator('.hero-video').evaluate(video => video.pause());
+          await playing(page, '.hero-video');
+          console.log('PASS: mobile home video loops and resumes an unexpected pause automatically');
+        }
         if (options.isMobile) {
           const layout = await page.locator('.hero').evaluate(hero => {
             const video = hero.querySelector('video');
@@ -122,6 +133,7 @@ async function main() {
         await page.waitForSelector('#productDemoVideo:not([hidden])');
         await page.locator('#productDemoVideo').scrollIntoViewIfNeeded();
         await playing(page, '#productDemoVideoPlayer');
+        assert.equal(await page.locator('.video-play-button').count(), 0);
         if (options.isMobile) assert.equal(await page.locator('#productDemoVideoPlayer').evaluate(el => getComputedStyle(el).objectFit), 'contain');
         assert.equal(await page.locator('#productMainImage').evaluate(el => el.complete), false, 'Product video must play while its photo is still pending');
         await page.screenshot({ path: path.join(artifacts, `video-${name}-product.png`) });
@@ -139,16 +151,16 @@ async function main() {
           if (window.denyVideoAutoplay) { this.autoplay = false; return Promise.reject(new DOMException('Gesture required', 'NotAllowedError')); }
           return nativePlay.call(this);
         };
-        document.addEventListener('click', event => { if (event.target.closest('.video-play-button')) window.denyVideoAutoplay = false; }, true);
+        document.addEventListener('pointerdown', () => { window.denyVideoAutoplay = false; }, true);
       });
       await page.goto(base + '/index.html', { waitUntil: 'domcontentloaded' });
       await page.locator('.hero').scrollIntoViewIfNeeded();
-      await page.locator('#heroVideoPlay').waitFor({ state: 'visible' });
-      await page.locator('#heroVideoPlay').tap();
+      await page.waitForFunction(() => !!document.querySelector('.hero-video').currentSrc);
+      assert.equal(await page.locator('.video-play-button').count(), 0);
+      await page.locator('#heroTitulo').tap();
       await playing(page, '.hero-video');
-      assert.equal(await page.locator('#heroVideoPlay').isVisible(), false);
       assert.deepEqual(fixture.errors, []);
-      console.log('PASS: mobile tap starts the actual video when automatic playback is blocked');
+      console.log('PASS: playback recovers on a normal browsing gesture without a play button');
     } finally { fixture.release(); await fixture.page.close(); }
     const checkout = await setup({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     try {

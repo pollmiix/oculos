@@ -111,7 +111,7 @@ function configurarVideoProduto() {
   const produtoMeta = /ray[\s-]*ban\s+meta/i.test(String(produto.nome));
   container.hidden = !produtoMeta;
   if (!produtoMeta) return;
-  window.iniciarVideoLoja(video, { container, button: $("#productVideoPlay") });
+  window.iniciarVideoLoja(video, { container });
 }
 
 function renderizarProdutosRelacionados() {

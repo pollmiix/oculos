@@ -1,5 +1,5 @@
 (() => {
-  window.iniciarVideoLoja = (video, { container = video?.parentElement, button, permitido = () => true } = {}) => {
+  window.iniciarVideoLoja = (video, { container = video?.parentElement, permitido = () => true } = {}) => {
     if (!video || !container) return null;
     if (video.lojaPlayer) return video.lojaPlayer;
     let pending = false;
@@ -14,16 +14,15 @@
     video.muted = true;
     video.defaultMuted = true;
     video.loop = true;
+    video.controls = false;
     video.playsInline = true;
     video.setAttribute('muted', '');
     video.setAttribute('playsinline', '');
     video.setAttribute('webkit-playsinline', '');
-    const showButton = show => { if (button) button.hidden = !show; };
     const atualizar = () => {
       if (!allowed()) {
         video.autoplay = false;
         video.pause();
-        showButton(false);
         return;
       }
       if (pending || (!video.paused && !video.ended)) return;
@@ -35,23 +34,21 @@
       }
       video.muted = true;
       video.autoplay = true;
+      if (video.ended) video.currentTime = 0;
       pending = true;
       try {
         const playback = video.play();
         Promise.resolve(playback).then(() => {
           gestureNeeded = false;
-          showButton(false);
           // A checkout or tab change can happen while play() is pending.
           if (!allowed()) { video.autoplay = false; video.pause(); }
         }).catch(error => {
           if (error.name === 'AbortError' && !allowed()) return;
           gestureNeeded = true;
-          showButton(allowed());
         }).finally(() => { pending = false; });
       } catch {
         pending = false;
         gestureNeeded = true;
-        showButton(true);
       }
     };
     const retry = () => {
@@ -61,19 +58,21 @@
       }
       atualizar();
     };
-    button?.addEventListener('click', retry);
     video.addEventListener('playing', () => {
       gestureNeeded = false;
-      showButton(false);
     });
     video.addEventListener('error', () => {
       pending = false;
       gestureNeeded = true;
-      showButton(allowed());
     });
+    video.addEventListener('pause', () => {
+      if (allowed() && !gestureNeeded) requestAnimationFrame(atualizar);
+    });
+    video.addEventListener('ended', atualizar);
     video.addEventListener('canplay', atualizar);
     document.addEventListener('visibilitychange', atualizar);
     document.addEventListener('pointerup', () => { if (gestureNeeded) retry(); }, { passive: true });
+    document.addEventListener('click', () => { if (gestureNeeded) retry(); }, { passive: true });
     document.addEventListener('keydown', event => { if (gestureNeeded && ['Enter', ' '].includes(event.key)) retry(); });
     window.addEventListener('pageshow', atualizar);
     window.addEventListener('resize', atualizar);
@@ -89,7 +88,6 @@
   const hero = document.querySelector('.hero-video');
   if (hero) window.videoCapaLoja = window.iniciarVideoLoja(hero, {
     container: hero.closest('.hero'),
-    button: document.getElementById('heroVideoPlay'),
     permitido: () => !document.documentElement.classList.contains('checkout-loading')
       && !document.getElementById('checkout')?.classList.contains('aberto')
   });
