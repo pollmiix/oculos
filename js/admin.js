@@ -5,7 +5,7 @@ let adminRole = "owner";
 let estado = window.carregarLojaConfigurada();
 
 function salvar() {
-  localStorage.setItem(STORAGE_LOJA, JSON.stringify(estado));
+  window.armazenamentoLoja.salvar(STORAGE_LOJA, JSON.stringify(estado));
 }
 
 async function lerRespostaApi(response) {
@@ -320,7 +320,7 @@ function renderPainel() {
   atualizarConfiguracaoPagamento();
   document.getElementById("resetar").onclick = () => {
     if (!confirm("Voltar para os produtos e fotos originais?")) return;
-    localStorage.removeItem(STORAGE_LOJA);
+    window.armazenamentoLoja.remover(STORAGE_LOJA);
     estado = structuredClone(window.LOJA_PADRAO);
     renderPainel();
   };
@@ -603,7 +603,7 @@ async function criarContaAnalista() {
 }
 
 async function adminFetch(path) {
-  const response = await fetch(path, { cache: "no-store" });
+  const response = await window.fetchLoja(path, { cache: "no-store" });
   if (!response.ok) throw new Error("Não foi possível carregar este relatório.");
   return response.json();
 }

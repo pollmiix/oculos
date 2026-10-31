@@ -15,7 +15,7 @@
   if (!dialog || typeof dialog.showModal !== "function") return;
   const sessionKey = "vemari_pix_welcome_10_v1";
   // Keep product links and checkout navigation uninterrupted.
-  if (window.location.hash) return;
+  if (window.location.hash || new URLSearchParams(location.search).has("checkout") || new URLSearchParams(location.search).has("carrinho")) return;
   try {
     if (sessionStorage.getItem(sessionKey)) return;
   } catch {

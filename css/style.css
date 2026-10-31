@@ -1,3 +1,6 @@
+.checkout-loading body { overflow: hidden; }
+.checkout-loading body::after { content: "Preparando seu checkout…"; position: fixed; inset: 0; z-index: 30000; display: grid; place-items: center; padding: 24px; background: #080808; color: #fff; font: 600 17px/1.5 system-ui, sans-serif; text-align: center; }
+.checkout-loading .hero-video { visibility: hidden; }
 :root {
   --verde: #0b3d2e;
   --verde-escuro: #07261c;

@@ -18,6 +18,9 @@ let role = 'owner';
 let visitorRequests = 0;
 let fail = false;
 const collectedEvents = [];
+let holdNextRead = false;
+let readHeld;
+let releaseRead;
 const actions = [];
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
@@ -79,13 +82,34 @@ async function main() {
             summary: { visits: visits.length, online: visits.filter(v => v.online).length, blocked: visits.filter(v => v.blocked).length } };
         }
       }
+      if (url.pathname === '/api/admin/visitors' && request.method() === 'GET' && holdNextRead) {
+        holdNextRead = false;
+        const hold = new Promise(resolve => { releaseRead = resolve; });
+        readHeld();
+        await hold;
+      }
       await route.fulfill({ json: data });
     });
     await page.goto(base + '/admin.php');
     await page.waitForSelector('.visitor-table tbody tr:nth-child(25)');
     assert.equal(await page.locator('.visitor-table th').count(), 11);
     assert.equal(await page.locator('.visitor-table img').count(), 0, 'Visitor content must be escaped');
-    await page.locator('[data-visit-action=block]').first().click();
+    await page.evaluate(() => { window.retainedVisitorButton = document.querySelector('[data-visit-action=block]'); window.retainedVisitorButton.focus(); });
+    await Promise.all([
+      page.waitForResponse(response => response.url().includes('/api/admin/visitors') && response.request().method() === 'GET'),
+      page.clock.fastForward(1000)
+    ]);
+    assert.equal(await page.evaluate(() => window.retainedVisitorButton.isConnected && document.activeElement === window.retainedVisitorButton), true, 'Live refresh must preserve action buttons and focus');
+    const held = new Promise(resolve => { readHeld = resolve; });
+    holdNextRead = true;
+    await page.clock.fastForward(1000);
+    await held;
+    try {
+      await Promise.all([
+        page.waitForResponse(response => response.url().includes('/api/admin/visitors') && response.request().method() === 'POST'),
+        page.locator('[data-visit-action=block]').first().click()
+      ]);
+    } finally { releaseRead(); }
     await page.waitForSelector('.visitor-status[data-state=blocked]');
     await page.locator('[data-visit-filter]').selectOption('blocked');
     await page.waitForFunction(() => document.querySelector('.visitor-table tbody').children.length === 1);

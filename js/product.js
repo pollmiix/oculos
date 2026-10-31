@@ -54,17 +54,12 @@ function montarEspecificacoesProduto() {
 }
 
 function lerCarrinho() {
-  const salvo = localStorage.getItem(STORAGE_CARRINHO);
-  if (!salvo) return [];
-
-  const carrinho = JSON.parse(salvo);
-  if (!Array.isArray(carrinho)) throw new Error("O formato salvo para o carrinho não é válido.");
-  return carrinho;
+  return window.lerCarrinhoLoja();
 }
 
 function atualizarSubtotal() {
   const limite = Math.max(1, Number(produto.estoque) || 1);
-  const quantidade = Math.min(limite, Math.max(1, Number($("#productQuantity").value) || 1));
+  const quantidade = Math.min(limite, Math.max(1, Math.trunc(Number($("#productQuantity").value)) || 1));
   $("#productQuantity").value = String(quantidade);
   $("#productSubtotal").textContent = produtoTemPreco(produto)
     ? dinheiro(window.precoComDescontoPix(produto) * quantidade)
@@ -116,9 +111,10 @@ function configurarVideoProduto() {
   const produtoMeta = produto.nome.toLocaleLowerCase("pt-BR").includes("ray-ban meta");
   container.hidden = !produtoMeta;
   if (!produtoMeta) return;
+  let visivel = false;
 
   const atualizarReproducao = () => {
-    if (document.visibilityState !== "visible") {
+    if (document.visibilityState !== "visible" || !visivel) {
       video.autoplay = false;
       video.pause();
       return;
@@ -130,7 +126,6 @@ function configurarVideoProduto() {
     video.playsInline = true;
     video.autoplay = true;
     video.poster = produto.imagem;
-    video.load();
     video.play().catch((erro) => {
       if (erro.name !== "AbortError") {
         console.error("Não foi possível iniciar automaticamente o vídeo do produto.", erro);
@@ -138,7 +133,15 @@ function configurarVideoProduto() {
     });
   };
   document.addEventListener("visibilitychange", atualizarReproducao);
-  atualizarReproducao();
+  if (typeof IntersectionObserver === "function") {
+    new IntersectionObserver(entries => {
+      visivel = entries.some(entry => entry.isIntersecting);
+      atualizarReproducao();
+    }, { threshold: 0.15 }).observe(container);
+  } else {
+    visivel = true;
+    atualizarReproducao();
+  }
 }
 
 function renderizarProdutosRelacionados() {
@@ -319,7 +322,7 @@ function renderizarProduto() {
     $("#productStockWarning").textContent = `Não foi possível ler o carrinho: ${erro.message}`;
   }
 
-  $("#productAddButton").addEventListener("click", adicionarAoCarrinho);
+  $("#productAddButton").addEventListener("click", () => adicionarAoCarrinho());
   $("#productBuyNowButton").addEventListener("click", () => { window.storeAnalytics?.track("click_buy", { productId: produto.id }); adicionarAoCarrinho(true); });
 }
 
@@ -338,7 +341,7 @@ function adicionarAoCarrinho(comprarAgora = false) {
     return;
   }
 
-  const quantidade = Math.max(1, Number($("#productQuantity").value) || 1);
+  const quantidade = Math.max(1, Math.trunc(Number($("#productQuantity").value)) || 1);
   const item = carrinho.find((entrada) => entrada.id === produto.id);
   if (quantidade + (Number(item?.qtd) || 0) > produto.estoque) {
     $("#productStockWarning").hidden = false;

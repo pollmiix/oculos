@@ -1,3 +1,34 @@
+window.armazenamentoLoja = {
+  ler(chave) { try { return localStorage.getItem(chave); } catch { return null; } },
+  salvar(chave, valor) { try { localStorage.setItem(chave, valor); return true; } catch { return false; } },
+  remover(chave) { try { localStorage.removeItem(chave); } catch {} }
+};
+window.lerCarrinhoLoja = function () {
+  try {
+    const itens = JSON.parse(window.armazenamentoLoja.ler("mineironet_carrinho") || "[]");
+    if (!Array.isArray(itens)) return [];
+    const unicos = new Map();
+    for (const item of itens) {
+      if (!item || typeof item !== "object" || !["string", "number"].includes(typeof item.id)) continue;
+      const id = String(item.id);
+      const qtd = Math.trunc(Number(item.qtd));
+      if (!id || !Number.isSafeInteger(qtd) || qtd <= 0) continue;
+      const anterior = unicos.get(id);
+      const quantidade = Math.min(999, qtd + (anterior?.qtd || 0));
+      unicos.set(id, { ...item, id, qtd: quantidade });
+    }
+    return [...unicos.values()];
+  } catch { return []; }
+};
+window.escaparLoja = valor => String(valor ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+window.fetchLoja = async function (url, options = {}, timeout = 12000) {
+  if (typeof AbortController === "undefined") return fetch(url, options);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+  try { return await fetch(url, { ...options, signal: controller.signal }); }
+  finally { clearTimeout(timer); }
+};
+
 window.LOJA_PADRAO = {
   versaoReducaoPrecos: 2,
   versaoPrecosInteligentes: 2,
@@ -598,7 +629,7 @@ window.aplicarCatalogoSomenteOculos = function (catalogo) {
 
 window.carregarLojaConfigurada = function () {
   const chave = "mineironet_loja";
-  const salvo = localStorage.getItem(chave);
+  const salvo = window.armazenamentoLoja.ler(chave);
   if (!salvo) return structuredClone(window.LOJA_PADRAO);
 
   let dadosSalvos;
@@ -607,6 +638,11 @@ window.carregarLojaConfigurada = function () {
   } catch {
     return structuredClone(window.LOJA_PADRAO);
   }
+  if (!dadosSalvos || typeof dadosSalvos !== "object" || Array.isArray(dadosSalvos)) return structuredClone(window.LOJA_PADRAO);
+  dadosSalvos.produtos = Array.isArray(dadosSalvos.produtos)
+    ? dadosSalvos.produtos.filter(produto => produto && typeof produto === "object")
+    : structuredClone(window.LOJA_PADRAO.produtos);
+  if (!Array.isArray(dadosSalvos.categorias)) dadosSalvos.categorias = [...window.LOJA_PADRAO.categorias];
 
   // Update browser-saved prices once; reloading must not repeat the reduction.
   if ((Number(dadosSalvos.versaoReducaoPrecos) || 0) < 2) {
@@ -623,7 +659,7 @@ window.carregarLojaConfigurada = function () {
       }
     }
     dadosSalvos.versaoReducaoPrecos = 2;
-    localStorage.setItem(chave, JSON.stringify(dadosSalvos));
+    window.armazenamentoLoja.salvar(chave, JSON.stringify(dadosSalvos));
   }
 
   if ((Number(dadosSalvos.versaoPrecosInteligentes) || 0) < 2) {
@@ -638,7 +674,7 @@ window.carregarLojaConfigurada = function () {
       });
     }
     dadosSalvos.versaoPrecosInteligentes = 2;
-    localStorage.setItem(chave, JSON.stringify(dadosSalvos));
+    window.armazenamentoLoja.salvar(chave, JSON.stringify(dadosSalvos));
   }
 
   if ((Number(dadosSalvos.versaoDescontoPixInteligentes) || 0) < 2) {
@@ -651,7 +687,7 @@ window.carregarLojaConfigurada = function () {
       });
     }
     dadosSalvos.versaoDescontoPixInteligentes = 2;
-    localStorage.setItem(chave, JSON.stringify(dadosSalvos));
+    window.armazenamentoLoja.salvar(chave, JSON.stringify(dadosSalvos));
   }
 
   if ((Number(dadosSalvos.versaoPrecosFemininos) || 0) < 2) {
@@ -665,7 +701,7 @@ window.carregarLojaConfigurada = function () {
       });
     }
     dadosSalvos.versaoPrecosFemininos = 2;
-    localStorage.setItem(chave, JSON.stringify(dadosSalvos));
+    window.armazenamentoLoja.salvar(chave, JSON.stringify(dadosSalvos));
   }
 
   if ((Number(dadosSalvos.versaoPrecosMasculinos) || 0) < 2) {
@@ -679,7 +715,7 @@ window.carregarLojaConfigurada = function () {
       });
     }
     dadosSalvos.versaoPrecosMasculinos = 2;
-    localStorage.setItem(chave, JSON.stringify(dadosSalvos));
+    window.armazenamentoLoja.salvar(chave, JSON.stringify(dadosSalvos));
   }
 
   if ((Number(dadosSalvos.versaoPrecosOutros) || 0) < 2) {
@@ -693,7 +729,7 @@ window.carregarLojaConfigurada = function () {
       });
     }
     dadosSalvos.versaoPrecosOutros = 2;
-    localStorage.setItem(chave, JSON.stringify(dadosSalvos));
+    window.armazenamentoLoja.salvar(chave, JSON.stringify(dadosSalvos));
   }
 
   const loja = {
@@ -737,7 +773,7 @@ window.carregarLojaConfigurada = function () {
     loja.pix.chave = "";
     dadosDaLojaAtualizados = true;
   }
-  if (dadosDaLojaAtualizados) localStorage.setItem(chave, JSON.stringify(loja));
+  if (dadosDaLojaAtualizados) window.armazenamentoLoja.salvar(chave, JSON.stringify(loja));
 
   let identidadeAtualizada = false;
   if (["Mineiro Cards UAI", "Mineiro Net UAI"].includes(loja.loja.nome)
@@ -762,7 +798,7 @@ window.carregarLojaConfigurada = function () {
     loja.loja.banner = window.LOJA_PADRAO.loja.banner;
     identidadeAtualizada = true;
   }
-  if (identidadeAtualizada) localStorage.setItem(chave, JSON.stringify(loja));
+  if (identidadeAtualizada) window.armazenamentoLoja.salvar(chave, JSON.stringify(loja));
 
   const versaoCatalogoAtualizada = dadosSalvos.versaoCatalogo !== window.LOJA_PADRAO.versaoCatalogo;
   loja.versaoCatalogo = window.LOJA_PADRAO.versaoCatalogo;
@@ -774,7 +810,7 @@ window.carregarLojaConfigurada = function () {
     || loja.categorias.some((categoria, indice) => categoria !== lojaAtualizada.categorias[indice])
     || loja.categorias.length !== lojaAtualizada.categorias.length;
   if (versaoCatalogoAtualizada || catalogoAlterado) {
-    localStorage.setItem(chave, JSON.stringify(lojaAtualizada));
+    window.armazenamentoLoja.salvar(chave, JSON.stringify(lojaAtualizada));
   }
   return lojaAtualizada;
 };
@@ -784,10 +820,10 @@ const STORAGE_PRODUTOS_RECENTES = "mineironet_produtos_recentes";
 window.registrarProdutoVisitado = function (id) {
   if (id === undefined || id === null || String(id).trim() === "") return;
   try {
-    const salvo = JSON.parse(localStorage.getItem(STORAGE_PRODUTOS_RECENTES) || "[]");
+    const salvo = JSON.parse(window.armazenamentoLoja.ler(STORAGE_PRODUTOS_RECENTES) || "[]");
     const ids = Array.isArray(salvo) ? salvo.filter((produtoId) => typeof produtoId === "string") : [];
     const produtoId = String(id);
-    localStorage.setItem(
+    window.armazenamentoLoja.salvar(
       STORAGE_PRODUTOS_RECENTES,
       JSON.stringify([produtoId, ...ids.filter((item) => item !== produtoId)].slice(0, 8))
     );
@@ -798,7 +834,7 @@ window.registrarProdutoVisitado = function (id) {
 
 window.listarProdutosRecentes = function (produtos, limite = 4) {
   try {
-    const salvo = JSON.parse(localStorage.getItem(STORAGE_PRODUTOS_RECENTES) || "[]");
+    const salvo = JSON.parse(window.armazenamentoLoja.ler(STORAGE_PRODUTOS_RECENTES) || "[]");
     if (!Array.isArray(salvo)) return [];
     const produtosPorId = new Map(produtos.map((produto) => [String(produto.id), produto]));
     return salvo
@@ -816,7 +852,7 @@ window.carregarLojaRemota = async function () {
   const local = window.carregarLojaConfigurada();
   if (window.location.protocol === "file:") return local;
   try {
-    const response = await fetch("/api/store", { cache: "no-store" });
+    const response = await window.fetchLoja("/api/store", { cache: "no-store" });
     if (response.status === 404) throw new Error("Catálogo indisponível.");
     if (!response.ok) throw new Error(`O servidor respondeu ${response.status}.`);
     const dados = await response.json();
@@ -872,7 +908,7 @@ window.carregarLojaRemota = async function () {
     // Published products and stock come from the server. Do not re-import
     // removed products or overwrite inventory with a restored sample catalog.
     catalogoComServidor.produtos = Array.isArray(dados.produtos) ? dados.produtos : [];
-    return window.aplicarCatalogoSomenteOculos(catalogoComServidor);
+    return { ...window.aplicarCatalogoSomenteOculos(catalogoComServidor), catalogoDisponivel: true };
   } catch (erro) {
     console.error("Não foi possível carregar a configuração compartilhada da loja.", erro);
     // Live Server cannot run the API. Keep the local preview visible without
@@ -881,10 +917,11 @@ window.carregarLojaRemota = async function () {
     if (["localhost", "127.0.0.1", "[::1]"].includes(hostname)) {
       return {
         ...local,
+        catalogoDisponivel: false,
         produtos: local.produtos.map((produto) => ({ ...produto, estoque: 0 }))
       };
     }
     // Never offer a restored sample catalog when the live inventory is unavailable.
-    return { ...local, produtos: [] };
+    return { ...local, produtos: [], catalogoDisponivel: false };
   }
 };

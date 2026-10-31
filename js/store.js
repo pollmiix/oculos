@@ -3,13 +3,7 @@ const STORAGE_CARRINHO = "mineironet_carrinho";
 const STORAGE_PEDIDOS = "mineironet_pedidos";
 
 let loja = window.carregarLojaConfigurada();
-let carrinho = JSON.parse(localStorage.getItem(STORAGE_CARRINHO) || "[]");
-const idsProdutosCatalogo = new Set(loja.produtos.map((produto) => String(produto.id)));
-const carrinhoSemProdutosRemovidos = carrinho.filter((item) => idsProdutosCatalogo.has(String(item.id)));
-if (carrinhoSemProdutosRemovidos.length !== carrinho.length) {
-  carrinho = carrinhoSemProdutosRemovidos;
-  localStorage.setItem(STORAGE_CARRINHO, JSON.stringify(carrinho));
-}
+let carrinho = window.lerCarrinhoLoja();
 let categoriaAtiva = "Todos";
 let busca = "";
 let filtroEstoque = { disponiveis: false, indisponiveis: false };
@@ -21,13 +15,16 @@ let produtoAberto = null;
 let pixPayload = "";
 let pedidoAtual = null;
 let gatewayConfiguradoNoServidor = false;
+let atualizarVideoCapa = () => {};
 
 function salvarPedidoLocalmente(pedido) {
-  const pedidos = JSON.parse(localStorage.getItem(STORAGE_PEDIDOS) || "[]");
+  let pedidos;
+  try { pedidos = JSON.parse(window.armazenamentoLoja.ler(STORAGE_PEDIDOS) || "[]"); } catch { pedidos = []; }
+  if (!Array.isArray(pedidos)) pedidos = [];
   const pedidoSemCpf = { ...pedido, cliente: { ...(pedido.cliente || {}) } };
   delete pedidoSemCpf.cliente.cpf;
   pedidos.unshift(pedidoSemCpf);
-  localStorage.setItem(STORAGE_PEDIDOS, JSON.stringify(pedidos));
+  window.armazenamentoLoja.salvar(STORAGE_PEDIDOS, JSON.stringify(pedidos));
 }
 
 try {
@@ -65,7 +62,7 @@ function precoParaExibicao(produto) {
 }
 
 function salvarCarrinho() {
-  localStorage.setItem(STORAGE_CARRINHO, JSON.stringify(carrinho));
+  window.armazenamentoLoja.salvar(STORAGE_CARRINHO, JSON.stringify(carrinho));
   atualizarBadge();
 }
 
@@ -383,19 +380,21 @@ function renderProdutos() {
   const grid = $("#grid");
   $("#catalogResultCount").textContent = `${lista.length} ${lista.length === 1 ? "produto encontrado" : "produtos encontrados"}`;
   if (!lista.length) {
-  grid.innerHTML = `<div class="vazio">Nenhum produto encontrado. Ajuste ou limpe os filtros para ver outros produtos.</div>`;
+    grid.innerHTML = loja.catalogoDisponivel === false
+      ? '<div class="vazio" role="status">Não foi possível carregar o catálogo. Confira sua conexão e <a href="">tente novamente</a>.</div>'
+      : '<div class="vazio">Nenhum produto encontrado. Ajuste ou limpe os filtros para ver outros produtos.</div>';
     return;
   }
-  grid.innerHTML = lista
+  grid.innerHTML = (loja.catalogoDisponivel === false ? '<div class="vazio" role="status">Catálogo indisponível no servidor. Exibindo uma prévia sem estoque confirmado.</div>' : '') + lista
     .map(
       (p) => `
       <article class="card">
         ${p.destaque ? `<span class="badge">Destaque</span>` : ""}
-        <div class="card-img" data-id="${p.id}"><img src="${p.imagem}" alt="${p.nome}"></div>
+        <div class="card-img" data-id="${window.escaparLoja(p.id)}"><img src="${window.escaparLoja(p.imagem)}" alt="${window.escaparLoja(p.nome)}" loading="lazy" decoding="async" width="480" height="320"></div>
         <div class="card-body">
-          <div class="cat">${p.publico && p.publico !== "Não informado" ? `${p.categoria} · ${p.publico}` : p.categoria}</div>
-          <h3><a href="${urlProduto(p.id)}" data-product-link="${p.id}">${p.nome}</a></h3>
-          <p class="card-specs">${[p.corArmacao, p.lente, p.tamanho ? `Tamanho ${p.tamanho}` : ""].filter(Boolean).join(" · ")}</p>
+          <div class="cat">${window.escaparLoja(p.publico && p.publico !== "Não informado" ? `${p.categoria} · ${p.publico}` : p.categoria)}</div>
+          <h3><a href="${urlProduto(p.id)}" data-product-link="${window.escaparLoja(p.id)}">${window.escaparLoja(p.nome)}</a></h3>
+          <p class="card-specs">${window.escaparLoja([p.corArmacao, p.lente, p.tamanho ? `Tamanho ${p.tamanho}` : ""].filter(Boolean).join(" · "))}</p>
           <div class="precos">
             <strong class="preco">${precoParaExibicao(p)}</strong>
             ${produtoTemPreco(p) && window.temDescontoPix(p) ? `<del class="preco-original">${dinheiro(p.preco)}</del><span class="preco-pix-label">${window.percentualDescontoPixProduto(p)}% de desconto no Pix</span>` : produtoTemPreco(p) ? `<span class="preco-pix-label">Preço informado</span>` : ""}
@@ -403,8 +402,8 @@ function renderProdutos() {
           <p class="product-stock ${p.estoque > 0 && produtoTemPreco(p) ? "" : "pendente"}">
             ${!produtoTemPreco(p) ? "Preço a confirmar com a loja" : p.estoque > 0 ? `${p.estoque} em estoque` : "Estoque a confirmar"}
           </p>
-          <a class="btn btn-ghost" data-details="${p.id}" href="${urlProduto(p.id)}">Ver produto →</a>
-          <button class="btn btn-verde" data-add="${p.id}" ${p.estoque > 0 && produtoTemPreco(p) ? "" : "disabled"}>
+          <a class="btn btn-ghost" data-details="${window.escaparLoja(p.id)}" href="${urlProduto(p.id)}">Ver produto →</a>
+          <button class="btn btn-verde" data-add="${window.escaparLoja(p.id)}" ${p.estoque > 0 && produtoTemPreco(p) ? "" : "disabled"}>
             ${!produtoTemPreco(p) ? "Consulte o preço" : p.estoque > 0 ? "Adicionar" : "Atualize o estoque"}
           </button>
         </div>
@@ -526,6 +525,8 @@ function abrirProduto(id) {
 }
 
 function adicionar(id, qtd) {
+  qtd = Math.trunc(Number(qtd));
+  if (!Number.isSafeInteger(qtd) || qtd <= 0) return;
   const prod = loja.produtos.find((p) => p.id === id);
   if (!prod) return;
   const item = carrinho.find((i) => i.id === id);
@@ -597,26 +598,26 @@ function renderCarrinho() {
     .map(
       (i) => `
       <div class="item">
-        <a class="cart-item-image" href="produto.html?id=${encodeURIComponent(i.id)}" aria-label="Ver ${i.nome}">
-          <img src="${i.imagem}" alt="">
+        <a class="cart-item-image" href="produto.html?id=${encodeURIComponent(i.id)}" aria-label="Ver ${window.escaparLoja(i.nome)}">
+          <img src="${window.escaparLoja(i.imagem)}" alt="" decoding="async" width="96" height="72">
         </a>
         <div class="cart-item-info">
-          <a class="cart-item-name" href="produto.html?id=${encodeURIComponent(i.id)}">${i.nome}</a>
+          <a class="cart-item-name" href="produto.html?id=${encodeURIComponent(i.id)}">${window.escaparLoja(i.nome)}</a>
           <strong class="cart-item-price">${dinheiro(i.preco)}</strong>
           <div class="qty">
-            <button type="button" data-menos="${i.id}" aria-label="Diminuir quantidade de ${i.nome}">−</button>
+            <button type="button" data-menos="${window.escaparLoja(i.id)}" aria-label="Diminuir quantidade de ${window.escaparLoja(i.nome)}">−</button>
             <span aria-label="Quantidade">${i.qtd}</span>
-            <button type="button" data-mais="${i.id}" aria-label="Aumentar quantidade de ${i.nome}">+</button>
+            <button type="button" data-mais="${window.escaparLoja(i.id)}" aria-label="Aumentar quantidade de ${window.escaparLoja(i.nome)}">+</button>
           </div>
           <strong class="cart-item-subtotal">${dinheiro(i.preco * i.qtd)}</strong>
         </div>
-        <button class="cart-remove-button" type="button" data-rem="${i.id}" aria-label="Remover ${i.nome} do carrinho">Remover</button>
+        <button class="cart-remove-button" type="button" data-rem="${window.escaparLoja(i.id)}" aria-label="Remover ${window.escaparLoja(i.nome)} do carrinho">Remover</button>
       </div>`
     )
     .join("");
   $("#cartSubtotal").textContent = dinheiro(totalCarrinho());
   $("#cartTotal").textContent = dinheiro(totalCarrinho());
-  botaoCheckout.disabled = false;
+  botaoCheckout.disabled = loja.catalogoDisponivel === false;
   $$("[data-menos]").forEach((b) => b.onclick = () => mudarQtd(b.dataset.menos, -1));
   $$("[data-mais]").forEach((b) => b.onclick = () => mudarQtd(b.dataset.mais, 1));
   $$("[data-rem]").forEach((b) => b.onclick = () => remover(b.dataset.rem));
@@ -634,7 +635,8 @@ function fecharTudo() {
 }
 
 function abrirCheckout() {
-  if (!carrinho.length) return;
+  if (!carrinho.length || loja.catalogoDisponivel === false) return;
+  $(".hero-video")?.pause();
   window.storeAnalytics?.track("begin_checkout");
   fecharTudo();
   $("#checkout").classList.add("aberto");
@@ -762,7 +764,7 @@ async function gerarPix() {
   pedidoAtual = {
     id: txid,
     cliente: dados,
-    itens: carrinho,
+    itens: carrinho.map(item => ({ ...item })),
     total: totalCarrinho(),
     pix: pixPayload,
     status: "aguardando_pagamento",
@@ -1014,18 +1016,20 @@ async function confirmarPagamento() {
 }
 
 async function iniciar() {
-  const saudePendente = fetch("/api/health", { cache: "no-store" })
+  const saudePendente = window.fetchLoja("/api/health", { cache: "no-store" })
     .then((response) => response.ok ? response.json() : {})
     .catch(() => ({}));
   loja = await window.carregarLojaRemota();
   const videoCapa = $(".hero-video");
   if (videoCapa) {
+    let heroVisivel = false;
     videoCapa.muted = true;
     videoCapa.defaultMuted = true;
     videoCapa.playsInline = true;
-    videoCapa.autoplay = true;
+    videoCapa.autoplay = false;
     const reproduzirVideoCapa = () => {
-      if (document.visibilityState !== "visible") return;
+      if (!heroVisivel || document.visibilityState !== "visible" || $("#checkout").classList.contains("aberto")
+          || document.documentElement.classList.contains("checkout-loading")) { videoCapa.pause(); return; }
       videoCapa.play().catch((erro) => {
         if (erro.name !== "AbortError") {
           console.error("Não foi possível iniciar automaticamente o vídeo da capa.", erro);
@@ -1037,17 +1041,29 @@ async function iniciar() {
       if (document.visibilityState === "visible") reproduzirVideoCapa();
       else videoCapa.pause();
     });
-    reproduzirVideoCapa();
+    atualizarVideoCapa = reproduzirVideoCapa;
+    if (typeof IntersectionObserver === "function") {
+      new IntersectionObserver(entries => {
+        heroVisivel = entries.some(entry => entry.isIntersecting);
+        reproduzirVideoCapa();
+      }, { threshold: 0.1 }).observe(videoCapa);
+    } else {
+      heroVisivel = true;
+      reproduzirVideoCapa();
+    }
   }
   if (window.matchMedia("(max-width: 760px)").matches) {
     $("#filterModels").closest("details").open = false;
   }
-  gatewayConfiguradoNoServidor = (await saudePendente).paymentConfigured === true;
-  carrinho = carrinho.map((item) => {
+  if (loja.catalogoDisponivel !== false) carrinho = carrinho.flatMap((item) => {
     const produto = loja.produtos.find((candidato) => candidato.id === item.id);
-    return produtoTemPreco(produto)
-      ? { ...item, nome: produto.nome, preco: window.precoComDescontoPix(produto), imagem: produto.imagem }
-      : item;
+    if (!produtoTemPreco(produto) || !(Number(produto.estoque) > 0)) return [];
+    return [{ ...item, qtd: Math.min(item.qtd, Math.trunc(Number(produto.estoque))), nome: produto.nome, preco: window.precoComDescontoPix(produto), imagem: produto.imagem }];
+  });
+  saudePendente.then(saude => {
+    gatewayConfiguradoNoServidor = saude.paymentConfigured === true;
+    if (gatewayConfiguradoNoServidor && loja.pagamento.metodo === "gateway"
+        && $("#checkout").classList.contains("gateway-pendente")) abrirCheckout();
   });
   salvarCarrinho();
   renderTopo();
@@ -1158,17 +1174,20 @@ async function iniciar() {
     $(".checkout-summary-column").hidden = false;
     $("#checkoutForm").hidden = false;
     $("#checkoutTitle").textContent = "Checkout PIX";
+    atualizarVideoCapa();
   };
   $("#gatewayBackButton").onclick = () => {
     $("#checkout").classList.remove("aberto", "gateway-pendente");
     $("#gatewayPending").hidden = true;
     $(".checkout-summary-column").hidden = false;
     $("#checkoutForm").hidden = false;
+    atualizarVideoCapa();
   };
   $("#btnVoltarCheckout").onclick = () => {
     $("#checkout").classList.remove("pix-gerado");
+    $("#pixBox").classList.remove("visivel");
     $("#checkoutForm").style.display = "block";
-    $("#checkoutTitle").textContent = "Checkout PIX";
+    $("#checkoutTitle").textContent = loja.pagamento.metodo === "gateway" ? "Checkout BlackCat" : "Checkout PIX";
   };
   $("#btnPix").onclick = () => {
     if ($("#checkoutForm").reportValidity()) gerarPix();
@@ -1177,10 +1196,18 @@ async function iniciar() {
   $("#btnPago").onclick = confirmarPagamento;
   const parametrosDaPagina = new URLSearchParams(window.location.search);
   if (parametrosDaPagina.get("checkout") === "1") {
-    abrirCheckout();
+    if (loja.pagamento.metodo === "gateway") gatewayConfiguradoNoServidor = (await saudePendente).paymentConfigured === true;
+    if (carrinho.length) abrirCheckout(); else abrirCarrinho();
   } else if (parametrosDaPagina.get("carrinho") === "1") {
     abrirCarrinho();
   }
+  document.documentElement.classList.remove("checkout-loading");
 }
 
-document.addEventListener("DOMContentLoaded", iniciar);
+document.addEventListener("DOMContentLoaded", () => {
+  iniciar().catch(error => {
+    document.documentElement.classList.remove("checkout-loading");
+    console.error("Não foi possível iniciar a loja.", error);
+    $("#grid").innerHTML = '<div class="vazio" role="alert">Não foi possível carregar a loja. <a href="">Tentar novamente</a>.</div>';
+  });
+});

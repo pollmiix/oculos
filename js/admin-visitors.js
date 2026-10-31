@@ -24,7 +24,9 @@
     const status = find('.visitor-message');
     let page = 1;
     let active = false;
-    let busy = false;
+    let loading = false;
+    let mutating = false;
+    let refreshQueued = false;
     let revision = 0;
     let lastData;
     const date = value => new Date(Number(value) * 1000).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
@@ -35,12 +37,12 @@
       const summary = data.summary;
       find('.visitor-summary').innerHTML = [['Visitas', summary.visits], ['Pessoas online', summary.online], ['IPs bloqueados', summary.blocked]]
         .map(([label, value]) => `<article><span>${label}</span><strong>${Number(value) || 0}</strong></article>`).join('');
-      find('tbody').innerHTML = data.visits.length ? data.visits.map(visit => {
+      const markup = data.visits.length ? data.visits.map(visit => {
         const stage = visit.order_id && Number(visit.order_created) >= Number(visit.first_seen)
           ? payments[visit.payment_status] || 'Pedido registrado' : stages[visit.event_name] || 'Navegando na loja';
         const device = { desktop: 'Computador', mobile: 'Celular', tablet: 'Tablet' }[visit.device] || '';
         const source = visit.source === 'direct' ? 'Acesso direto' : visit.source || 'Não informado';
-        return `<tr>
+        return `<tr data-visitor-id="${esc(visit.session_id)}">
           <td><button type="button" class="visitor-action" data-visit-action="${visit.blocked ? 'unblock' : 'block'}" data-session="${esc(visit.session_id)}" ${visit.ip_address ? '' : 'disabled'}>${visit.blocked ? 'Desbloquear IP' : 'Bloquear IP'}</button></td>
           <td><button type="button" class="visitor-action visitor-delete" data-visit-action="delete" data-session="${esc(visit.session_id)}">Excluir</button></td>
           <td>${esc(date(visit.last_seen))}</td><td class="visitor-ip">${esc(visit.ip_address || 'Não disponível')}</td>
@@ -50,40 +52,59 @@
           <td>${safePage(visit.page_path) ? `<a href="${esc(visit.page_path)}" target="_blank" rel="noopener noreferrer">${esc(visit.page_path)}</a>` : esc(visit.page_path)}</td>
           <td class="visitor-source" title="${esc(source)}">${esc(source)}</td><td>${esc(visit.location || 'Não disponível')}</td></tr>`;
       }).join('') : '<tr><td colspan="11" class="visitor-empty">Nenhuma visita neste filtro. Novos registros aparecerão após o visitante aceitar as métricas.</td></tr>';
+      const tbody = find('tbody');
+      const incoming = document.createElement('tbody');
+      incoming.innerHTML = markup;
+      const previous = new Map([...tbody.children].map(row => [row.dataset.visitorId, row]));
+      [...incoming.children].forEach((row, index) => {
+        const existing = row.dataset.visitorId && previous.get(row.dataset.visitorId);
+        const target = existing || row;
+        if (existing) [...row.children].forEach((cell, i) => {
+          if (existing.children[i].innerHTML !== cell.innerHTML) existing.children[i].innerHTML = cell.innerHTML;
+        });
+        if (tbody.children[index] !== target) tbody.insertBefore(target, tbody.children[index] || null);
+        if (row.dataset.visitorId) previous.delete(row.dataset.visitorId);
+      });
+      previous.forEach(row => row.remove());
       find('[data-visit-page]').textContent = `Página ${data.page} de ${data.pages} (${data.total} ${data.total === 1 ? 'registro' : 'registros'})`;
       find('[data-visit-prev]').disabled = data.page <= 1;
       find('[data-visit-next]').disabled = data.page >= data.pages;
       find('[data-visit-unblock-all]').disabled = !summary.blocked;
     }
     async function load() {
-      if (busy || signal.aborted || !element.isConnected) return;
-      busy = true;
+      if (signal.aborted || !element.isConnected) return;
+      if (loading || mutating) { refreshQueued = true; return; }
+      loading = true;
+      refreshQueued = false;
       const current = ++revision;
+      const selectedPage = page;
+      const selectedFilter = find('[data-visit-filter]').value;
       find('[data-visit-refresh]').disabled = true;
-      find('[data-visit-filter]').disabled = true;
       try {
-        const params = new URLSearchParams({ page: String(page), filter: find('[data-visit-filter]').value });
+        const params = new URLSearchParams({ page: String(selectedPage), filter: selectedFilter });
         const data = await request(`/api/admin/visitors?${params}`);
         if (signal.aborted || !element.isConnected || current !== revision) return;
+        if (selectedPage !== page || selectedFilter !== find('[data-visit-filter]').value) { refreshQueued = true; return; }
         render(data);
         status.textContent = `Atualizado em ${date(data.serverTime)}.`;
       } catch (error) {
         if (!signal.aborted && current === revision) status.textContent = `${error.message} Use Atualizar painel para tentar novamente.`;
       } finally {
-        busy = false;
-        find('[data-visit-refresh]').disabled = false;
-        find('[data-visit-filter]').disabled = false;
+        loading = false;
+        find('[data-visit-refresh]').disabled = mutating;
+        if (refreshQueued && !mutating && active) load();
       }
     }
     async function action(name, sessionId) {
-      if (busy) return;
+      if (mutating) return;
       const confirmations = {
         delete: 'Excluir esta visita e seus eventos? Os pedidos e pagamentos serão preservados. A pessoa poderá aparecer novamente se continuar navegando.',
         block: 'Bloquear este IP nos serviços da loja? Outras pessoas na mesma rede também podem ser afetadas.',
         unblock_all: 'Desbloquear todos os IPs?'
       };
       if (confirmations[name] && !window.confirm(confirmations[name])) return;
-      busy = true;
+      mutating = true;
+      revision++;
       find('[data-visit-filter]').disabled = true;
       element.querySelectorAll('[data-visit-action], [data-visit-unblock-all], [data-visit-refresh]').forEach(button => { button.disabled = true; });
       status.textContent = 'Atualizando visita...';
@@ -91,13 +112,14 @@
         await mutate({ action: name, sessionId });
       } catch (error) {
         status.textContent = error.message;
-        busy = false;
+        mutating = false;
         if (lastData) render(lastData);
         find('[data-visit-refresh]').disabled = false;
         find('[data-visit-filter]').disabled = false;
         return;
       }
-      busy = false;
+      mutating = false;
+      find('[data-visit-filter]').disabled = false;
       await load();
     }
     element.addEventListener('click', event => {
@@ -106,8 +128,8 @@
       if (button.hasAttribute('data-visit-refresh')) load();
       if (button.hasAttribute('data-visit-unblock-all')) action('unblock_all');
       if (button.dataset.visitAction) action(button.dataset.visitAction, button.dataset.session);
-      if (!busy && button.hasAttribute('data-visit-prev')) { page--; load(); }
-      if (!busy && button.hasAttribute('data-visit-next')) { page++; load(); }
+      if (!mutating && button.hasAttribute('data-visit-prev')) { page--; load(); }
+      if (!mutating && button.hasAttribute('data-visit-next')) { page++; load(); }
     }, { signal });
     find('[data-visit-filter]').addEventListener('change', () => { page = 1; load(); }, { signal });
     const timer = setInterval(() => {

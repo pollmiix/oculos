@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+  <script>
+    if (new URLSearchParams(location.search).get('checkout') === '1') document.documentElement.classList.add('checkout-loading');
+  </script>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18478249345"></script>
   <script>
@@ -30,9 +33,12 @@
   <title>Vemari Ótica · Óculos inteligentes</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://oticasdiniz.vtexassets.com">
+  <link rel="preconnect" href="https://d13p5wuxy0ioj8.cloudfront.net">
+  <link rel="preconnect" href="https://images2.ray-ban.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=20261013c">
+  <link rel="stylesheet" href="css/style.css?v=20261030fixes">
   <link rel="stylesheet" href="css/promo.css?v=20261026pixslim">
 </head>
 <body class="storefront-page">
@@ -107,7 +113,7 @@
   </a>
 
   <section class="hero" aria-labelledby="heroTitulo">
-    <video class="hero-video" autoplay muted loop playsinline preload="auto" aria-label="Vídeo de apresentação dos óculos Ray-Ban Meta">
+    <video class="hero-video" muted loop playsinline preload="none" aria-label="Vídeo de apresentação dos óculos Ray-Ban Meta">
       <source src="rbm-pdp-aperol-d-optimized-data.mp4" type="video/mp4">
     </video>
     <div class="hero-copy">
@@ -522,12 +528,12 @@
   </section>
 
   <script src="js/analytics.js?v=20261030live"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+  <script async src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
   <script src="js/catalogo-coliseu.js?v=20261026other187"></script>
   <script src="js/catalogo-painel-recuperado.js?v=20261026other187"></script>
-  <script src="js/config.js?v=20261026other187"></script>
+  <script src="js/config.js?v=20261030fixes"></script>
   <script src="js/pix.js"></script>
-  <script src="js/store.js?v=20261030googleconversion"></script>
-  <script src="js/promo.js?v=20261026pixsticky"></script>
+  <script src="js/store.js?v=20261030fixes"></script>
+  <script src="js/promo.js?v=20261030fixes"></script>
 </body>
 </html>

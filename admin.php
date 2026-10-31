@@ -19,12 +19,12 @@ header('Content-Type: text/html; charset=utf-8');
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
   <script src="js/catalogo-coliseu.js?v=20261026other187"></script>
   <script src="js/catalogo-painel-recuperado.js?v=20261026other187"></script>
-  <script src="js/config.js?v=20261026other187"></script>
+  <script src="js/config.js?v=20261030fixes"></script>
   <script src="js/pix.js"></script>
-  <script src="js/admin-visitors.js?v=20261030live"></script>
+  <script src="js/admin-visitors.js?v=20261030fixes"></script>
   <script src="js/admin-layout.js?v=20261030visits"></script>
   <script src="js/gateway-admin.js?v=20261026qrtest"></script>
   <script src="js/gateway-test.js?v=20261026qrtest"></script>
-  <script src="js/admin.js?v=20261030visits"></script>
+  <script src="js/admin.js?v=20261030fixes"></script>
 </body>
 </html>
