@@ -162,6 +162,40 @@ async function main() {
       assert.deepEqual(fixture.errors, []);
       console.log('PASS: playback recovers on a normal browsing gesture without a play button');
     } finally { fixture.release(); await fixture.page.close(); }
+    const touchScroll = await setup({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    try {
+      const { page } = touchScroll;
+      await page.addInitScript(() => {
+        const nativePlay = HTMLMediaElement.prototype.play;
+        window.denyVideoAutoplay = true;
+        window.videoGestures = { touchend: 0, pointerup: 0, click: 0 };
+        HTMLMediaElement.prototype.play = function () {
+          if (window.denyVideoAutoplay) {
+            this.autoplay = false;
+            return Promise.reject(new DOMException('Gesture required', 'NotAllowedError'));
+          }
+          return nativePlay.call(this);
+        };
+        for (const type of ['touchend', 'pointerup', 'click']) document.addEventListener(type, event => {
+          if (!event.isTrusted) return;
+          window.videoGestures[type]++;
+          if (type === 'touchend') window.denyVideoAutoplay = false;
+        }, true);
+      });
+      await page.goto(base + '/produto.html?id=meta-fixture', { waitUntil: 'domcontentloaded' });
+      await page.locator('#productDemoVideo').scrollIntoViewIfNeeded();
+      await page.locator('#productDemoVideo').evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+      await page.waitForFunction(() => !!document.querySelector('#productDemoVideoPlayer').currentSrc);
+      const cdp = await page.context().newCDPSession(page);
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 190, y: 500 }] });
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 190, y: 460 }] });
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await page.waitForFunction(() => document.querySelector('#productDemoVideoPlayer').autoplay);
+      await playing(page, '#productDemoVideoPlayer');
+      assert.deepEqual(await page.evaluate(() => window.videoGestures), { touchend: 1, pointerup: 0, click: 0 });
+      assert.deepEqual(touchScroll.errors, []);
+      console.log('PASS: blocked product video resumes after touch scrolling without clicking the video');
+    } finally { touchScroll.release(); await touchScroll.page.close(); }
     const checkout = await setup({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     try {
       await checkout.page.goto(base + '/index.html?checkout=1', { waitUntil: 'domcontentloaded' });

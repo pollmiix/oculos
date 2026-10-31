@@ -71,9 +71,15 @@
     video.addEventListener('ended', atualizar);
     video.addEventListener('canplay', atualizar);
     document.addEventListener('visibilitychange', atualizar);
-    document.addEventListener('pointerup', () => { if (gestureNeeded) retry(); }, { passive: true });
-    document.addEventListener('click', () => { if (gestureNeeded) retry(); }, { passive: true });
-    document.addEventListener('keydown', event => { if (gestureNeeded && ['Enter', ' '].includes(event.key)) retry(); });
+    const retomarNoGesto = () => {
+      if (allowed() && video.paused) retry();
+    };
+    // Scrolling on a touch screen can cancel pointerup and never generate click.
+    // Call play synchronously in touchend so Safari can use that user gesture.
+    document.addEventListener('touchend', retomarNoGesto, { passive: true });
+    document.addEventListener('pointerup', retomarNoGesto, { passive: true });
+    document.addEventListener('click', retomarNoGesto, { passive: true });
+    document.addEventListener('keydown', event => { if (['Enter', ' '].includes(event.key)) retomarNoGesto(); });
     window.addEventListener('pageshow', atualizar);
     window.addEventListener('resize', atualizar);
     if (typeof IntersectionObserver === 'function') {
