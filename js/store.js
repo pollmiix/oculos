@@ -1016,6 +1016,13 @@ async function confirmarPagamento() {
 }
 
 async function iniciar() {
+  let checkoutCancelado = false;
+  if (document.documentElement.classList.contains("checkout-loading")) {
+    $("#fecharCheckout").onclick = () => {
+      checkoutCancelado = true;
+      document.documentElement.classList.remove("checkout-loading");
+    };
+  }
   const saudePendente = window.fetchLoja("/api/health", { cache: "no-store" })
     .then((response) => response.ok ? response.json() : {})
     .catch(() => ({}));
@@ -1195,7 +1202,7 @@ async function iniciar() {
   $("#btnCopiar").onclick = copiarPix;
   $("#btnPago").onclick = confirmarPagamento;
   const parametrosDaPagina = new URLSearchParams(window.location.search);
-  if (parametrosDaPagina.get("checkout") === "1") {
+  if (parametrosDaPagina.get("checkout") === "1" && !checkoutCancelado) {
     if (loja.pagamento.metodo === "gateway") gatewayConfiguradoNoServidor = (await saudePendente).paymentConfigured === true;
     if (carrinho.length) abrirCheckout(); else abrirCarrinho();
   } else if (parametrosDaPagina.get("carrinho") === "1") {

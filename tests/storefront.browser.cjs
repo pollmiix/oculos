@@ -82,7 +82,7 @@ async function main() {
       assert.ok(await page.locator('#checkout').evaluate(el => el.classList.contains('aberto')));
       assert.deepEqual(errors, []);
     });
-    await check('Slow checkout goes directly from loading screen to checkout', { mineironet_carrinho: JSON.stringify(cart) }, async (page, errors) => {
+    await check('Slow checkout shows the form immediately without a loading message', { mineironet_carrinho: JSON.stringify(cart) }, async (page, errors) => {
       await page.addInitScript(() => sessionStorage.removeItem('vemari_pix_welcome_10_v1'));
       let releaseStore;
       let releaseHealth;
@@ -91,7 +91,9 @@ async function main() {
       try {
         await page.goto(base + '/index.html?checkout=1', { waitUntil: 'domcontentloaded' });
         assert.equal(await page.evaluate(() => document.documentElement.classList.contains('checkout-loading')), true);
-        assert.match(await page.evaluate(() => getComputedStyle(document.body, '::after').content), /Preparando seu checkout/);
+        assert.equal(await page.locator('#checkoutForm').isVisible(), true);
+        assert.equal(await page.locator('#btnPix').isDisabled(), true);
+        assert.doesNotMatch(await page.evaluate(() => getComputedStyle(document.body, '::after').content), /Preparando seu checkout/);
         assert.equal(await page.locator('.hero-video').evaluate(video => video.paused), true);
         releaseStore();
         await page.waitForSelector('#checkout.aberto');
