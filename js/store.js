@@ -15,7 +15,7 @@ let produtoAberto = null;
 let pixPayload = "";
 let pedidoAtual = null;
 let gatewayConfiguradoNoServidor = false;
-let atualizarVideoCapa = () => {};
+const atualizarVideoCapa = () => window.videoCapaLoja?.atualizar();
 
 function salvarPedidoLocalmente(pedido) {
   let pedidos;
@@ -640,6 +640,7 @@ function abrirCheckout() {
   window.storeAnalytics?.track("begin_checkout");
   fecharTudo();
   $("#checkout").classList.add("aberto");
+  atualizarVideoCapa();
   const gatewaySelecionado = loja.pagamento.metodo === "gateway";
   $("#checkout").classList.remove("gateway-pendente");
   $("#gatewayPending").hidden = true;
@@ -1027,38 +1028,6 @@ async function iniciar() {
     .then((response) => response.ok ? response.json() : {})
     .catch(() => ({}));
   loja = await window.carregarLojaRemota();
-  const videoCapa = $(".hero-video");
-  if (videoCapa) {
-    let heroVisivel = false;
-    videoCapa.muted = true;
-    videoCapa.defaultMuted = true;
-    videoCapa.playsInline = true;
-    videoCapa.autoplay = false;
-    const reproduzirVideoCapa = () => {
-      if (!heroVisivel || document.visibilityState !== "visible" || $("#checkout").classList.contains("aberto")
-          || document.documentElement.classList.contains("checkout-loading")) { videoCapa.pause(); return; }
-      videoCapa.play().catch((erro) => {
-        if (erro.name !== "AbortError") {
-          console.error("Não foi possível iniciar automaticamente o vídeo da capa.", erro);
-        }
-      });
-    };
-    videoCapa.addEventListener("canplay", reproduzirVideoCapa);
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") reproduzirVideoCapa();
-      else videoCapa.pause();
-    });
-    atualizarVideoCapa = reproduzirVideoCapa;
-    if (typeof IntersectionObserver === "function") {
-      new IntersectionObserver(entries => {
-        heroVisivel = entries.some(entry => entry.isIntersecting);
-        reproduzirVideoCapa();
-      }, { threshold: 0.1 }).observe(videoCapa);
-    } else {
-      heroVisivel = true;
-      reproduzirVideoCapa();
-    }
-  }
   if (window.matchMedia("(max-width: 760px)").matches) {
     $("#filterModels").closest("details").open = false;
   }

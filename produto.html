@@ -28,7 +28,7 @@
   <link rel="preconnect" href="https://d13p5wuxy0ioj8.cloudfront.net">
   <link rel="preconnect" href="https://images2.ray-ban.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=20261030fixes">
+  <link rel="stylesheet" href="css/style.css?v=20261030mobilevideo">
   <link rel="stylesheet" href="css/promo.css?v=20261026productpix">
 </head>
 <body class="produto-page">
@@ -71,12 +71,15 @@
             muted
             loop
             playsinline
+            webkit-playsinline
             preload="none"
+            poster="imagens/video-rayban-poster.jpg"
             disablepictureinpicture
             aria-label="Vídeo de apresentação do Ray-Ban Meta"
           >
-            <source src="rbm-pdp-aperol-d-optimized-data.mp4" type="video/mp4">
+            <source data-src="rbm-pdp-aperol-d-optimized-data.mp4?v=20261030mobile" type="video/mp4">
           </video>
+          <button type="button" class="video-play-button product-video-play" id="productVideoPlay" hidden>▶ Reproduzir vídeo</button>
         </div>
       </section>
 
@@ -160,11 +163,12 @@
     </div>
   </footer>
 
+  <script src="js/video-player.js?v=20261030mobile"></script>
   <script src="js/analytics.js?v=20261030live"></script>
   <script src="js/catalogo-coliseu.js?v=20261026other187"></script>
   <script src="js/catalogo-painel-recuperado.js?v=20261026other187"></script>
   <script src="js/config.js?v=20261030fixes"></script>
-  <script src="js/product.js?v=20261030fixes"></script>
+  <script src="js/product.js?v=20261030mobilevideo"></script>
   <script src="js/promo.js?v=20261030fixes"></script>
 </body>
 </html>

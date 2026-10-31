@@ -38,7 +38,7 @@
   <link rel="preconnect" href="https://images2.ray-ban.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=20261030directcheckout">
+  <link rel="stylesheet" href="css/style.css?v=20261030mobilevideo">
   <link rel="stylesheet" href="css/promo.css?v=20261026pixslim">
 </head>
 <body class="storefront-page">
@@ -113,9 +113,10 @@
   </a>
 
   <section class="hero" aria-labelledby="heroTitulo">
-    <video class="hero-video" muted loop playsinline preload="none" aria-label="Vídeo de apresentação dos óculos Ray-Ban Meta">
-      <source src="rbm-pdp-aperol-d-optimized-data.mp4" type="video/mp4">
+    <video class="hero-video" muted loop playsinline webkit-playsinline preload="none" poster="imagens/video-rayban-poster.jpg" aria-label="Vídeo de apresentação dos óculos Ray-Ban Meta">
+      <source data-src="rbm-pdp-aperol-d-optimized-data.mp4?v=20261030mobile" type="video/mp4">
     </video>
+    <button type="button" class="video-play-button hero-video-play" id="heroVideoPlay" hidden>▶ Reproduzir vídeo</button>
     <div class="hero-copy">
       <p class="hero-kicker">Ray-Ban Meta · Coleção</p>
       <h1 id="heroTitulo">ENCONTRE O MODELO<br>IDEAL PARA VOCÊ</h1>
@@ -527,13 +528,14 @@
     </div>
   </section>
 
+  <script src="js/video-player.js?v=20261030mobile"></script>
   <script src="js/analytics.js?v=20261030live"></script>
   <script async src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
   <script src="js/catalogo-coliseu.js?v=20261026other187"></script>
   <script src="js/catalogo-painel-recuperado.js?v=20261026other187"></script>
   <script src="js/config.js?v=20261030fixes"></script>
   <script src="js/pix.js"></script>
-  <script src="js/store.js?v=20261030directcheckout"></script>
+  <script src="js/store.js?v=20261030mobilevideo"></script>
   <script src="js/promo.js?v=20261030fixes"></script>
 </body>
 </html>

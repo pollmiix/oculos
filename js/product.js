@@ -108,40 +108,10 @@ function renderizarGaleria() {
 function configurarVideoProduto() {
   const container = $("#productDemoVideo");
   const video = $("#productDemoVideoPlayer");
-  const produtoMeta = produto.nome.toLocaleLowerCase("pt-BR").includes("ray-ban meta");
+  const produtoMeta = /ray[\s-]*ban\s+meta/i.test(String(produto.nome));
   container.hidden = !produtoMeta;
   if (!produtoMeta) return;
-  let visivel = false;
-
-  const atualizarReproducao = () => {
-    if (document.visibilityState !== "visible" || !visivel) {
-      video.autoplay = false;
-      video.pause();
-      return;
-    }
-
-    video.muted = true;
-    video.defaultMuted = true;
-    video.loop = true;
-    video.playsInline = true;
-    video.autoplay = true;
-    video.poster = produto.imagem;
-    video.play().catch((erro) => {
-      if (erro.name !== "AbortError") {
-        console.error("Não foi possível iniciar automaticamente o vídeo do produto.", erro);
-      }
-    });
-  };
-  document.addEventListener("visibilitychange", atualizarReproducao);
-  if (typeof IntersectionObserver === "function") {
-    new IntersectionObserver(entries => {
-      visivel = entries.some(entry => entry.isIntersecting);
-      atualizarReproducao();
-    }, { threshold: 0.15 }).observe(container);
-  } else {
-    visivel = true;
-    atualizarReproducao();
-  }
+  window.iniciarVideoLoja(video, { container, button: $("#productVideoPlay") });
 }
 
 function renderizarProdutosRelacionados() {
@@ -280,18 +250,7 @@ function renderizarProduto() {
   scriptEstruturado.textContent = JSON.stringify(dadosEstruturados);
   $("#productPageContent").hidden = false;
   renderizarGaleria();
-  const imagemPrincipal = $("#productMainImage");
-  if (imagemPrincipal.complete) {
-    configurarVideoProduto();
-  } else {
-    const iniciarVideo = () => {
-      imagemPrincipal.removeEventListener("load", iniciarVideo);
-      imagemPrincipal.removeEventListener("error", iniciarVideo);
-      configurarVideoProduto();
-    };
-    imagemPrincipal.addEventListener("load", iniciarVideo);
-    imagemPrincipal.addEventListener("error", iniciarVideo);
-  }
+  configurarVideoProduto();
   renderizarProdutosRelacionados();
   window.storeAnalytics?.track("view_item", { productId: produto.id });
   atualizarSubtotal();
