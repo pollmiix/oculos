@@ -78,7 +78,8 @@ async function main() {
     for (const [name, options] of [
       ['desktop', { viewport: { width: 1366, height: 900 } }],
       ['android', { viewport: { width: 360, height: 740 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
-      ['iphone', { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 3 }]
+      ['iphone', { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 3 }],
+      ['mobile430', { viewport: { width: 430, height: 932 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }]
     ]) {
       const fixture = await setup(options);
       const { page } = fixture;
@@ -88,14 +89,34 @@ async function main() {
         await page.locator('.hero').scrollIntoViewIfNeeded();
         await playing(page, '.hero-video');
         if (options.isMobile) {
-          assert.equal(await page.locator('.hero-video').evaluate(el => getComputedStyle(el).objectFit), 'contain');
-          const ratio = await page.locator('.hero-video').evaluate(el => el.getBoundingClientRect().width / el.getBoundingClientRect().height);
-          assert.ok(Math.abs(ratio - 298 / 135) < 0.05, 'Mobile home video must preserve the full frame');
+          const layout = await page.locator('.hero').evaluate(hero => {
+            const video = hero.querySelector('video');
+            const copy = hero.querySelector('.hero-copy');
+            const rect = element => { const r = element.getBoundingClientRect(); return { x:r.x, y:r.y, width:r.width, height:r.height }; };
+            return { hero:rect(hero), video:rect(video), fit:getComputedStyle(video).objectFit,
+              background:getComputedStyle(copy).backgroundColor, layer:Number(getComputedStyle(copy).zIndex),
+              gradient:getComputedStyle(hero,'::after').backgroundImage,
+              actions:[...hero.querySelectorAll('.hero-actions a')].map(rect) };
+          });
+          assert.equal(layout.fit, 'cover');
+          assert.ok(layout.hero.height >= 520);
+          for (const key of ['x','y','width','height']) assert.ok(Math.abs(layout.hero[key] - layout.video[key]) < 1, 'Video must fill the whole mobile hero');
+          assert.equal(layout.background, 'rgba(0, 0, 0, 0)');
+          assert.ok(layout.layer > 1);
+          assert.match(layout.gradient, /linear-gradient/);
+          assert.ok(layout.actions.every(r => r.x >= layout.hero.x && r.x + r.width <= layout.hero.x + layout.hero.width + 1 && r.y + r.height <= layout.hero.y + layout.hero.height + 1));
+          await page.waitForFunction(() => document.documentElement.scrollWidth <= innerWidth);
         }
         assert.equal(await page.locator('[data-add]').count(), 0, 'Home video must play before the catalog resolves');
         await page.screenshot({ path: path.join(artifacts, `video-${name}-home.png`) });
         fixture.release();
         await page.waitForSelector('[data-add]');
+        if (options.isMobile) {
+          await page.locator('.hero-actions a[href="#grid"]').tap();
+          await page.waitForURL(url => url.hash === '#grid');
+          await page.locator('.hero-actions a[href="#sobre"]').tap();
+          await page.waitForURL(url => url.hash === '#sobre');
+        }
         fixture.holdPhoto();
         await page.goto(base + '/produto.html?id=meta-fixture', { waitUntil: 'domcontentloaded' });
         await page.waitForSelector('#productDemoVideo:not([hidden])');

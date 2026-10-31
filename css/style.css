@@ -3548,13 +3548,14 @@ body.produto-page { background:#fff; color:#111; }
  .storefront-page .checkout-summary-column .resumo { padding:24px; }
 }
 
-/* Keep the entire video frame visible on phones instead of cropping it to a tall hero. */
+/* Fill the mobile home banner with video behind the copy and actions. */
 @media(max-width:680px) {
- .storefront-page .hero { min-height:0; height:auto; padding-top:calc(100vw * 135 / 298); }
- .storefront-page .hero .hero-video { position:absolute; inset:0 auto auto 0; width:100%; height:auto; aspect-ratio:298 / 135; object-fit:contain; opacity:1; filter:none; }
- .storefront-page .hero::after { display:none; }
- .storefront-page .hero-copy { position:relative; inset:auto; padding:26px 20px 30px; background:#080808; }
+ .storefront-page .hero { display:flex; align-items:center; min-height:520px; height:auto; padding:0; }
+ .storefront-page .hero .hero-video { position:absolute; inset:0; width:100%; height:100%; aspect-ratio:auto; object-fit:cover; object-position:center; opacity:1; filter:none; }
+ .storefront-page .hero::after { display:block; z-index:1; background:linear-gradient(90deg,rgba(0,0,0,.72),rgba(0,0,0,.52)),linear-gradient(0deg,rgba(0,0,0,.35),transparent 65%); }
+ .storefront-page .hero-copy { position:relative; z-index:2; inset:auto; padding:48px 20px; background:transparent; }
  .storefront-page .hero-copy h1 { font-size:clamp(30px,8vw,38px); }
+ .storefront-page .hero-copy .hero-kicker,.storefront-page .hero-copy>span { color:#eee; }
  .storefront-page .hero-video-play { top:12px; right:12px; bottom:auto; }
  .produto-page .product-demo-video { aspect-ratio:298 / 135; max-height:none; }
  .produto-page .product-demo-video video { object-fit:contain; }
