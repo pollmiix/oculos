@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+  <script>
+    if (!new URLSearchParams(location.search).get('id')?.trim()) location.replace('index.html#grid');
+  </script>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18478249345"></script>
   <script>
@@ -150,8 +153,9 @@
 
     <section id="productNotFound" class="product-not-found" hidden>
       <span aria-hidden="true">🕶️</span>
-      <h1>Não encontramos esse produto</h1>
-      <p>Ele pode ter sido removido ou o link pode estar incorreto.</p>
+      <h1>Não foi possível carregar o produto agora</h1>
+      <p>Confira sua conexão e tente novamente.</p>
+      <a class="btn btn-ghost" href="" onclick="location.reload(); return false;">Tentar novamente</a>
       <a class="btn btn-verde" href="index.html#grid">Voltar para a loja</a>
     </section>
   </main>
@@ -168,7 +172,7 @@
   <script src="js/catalogo-coliseu.js?v=20261026other187"></script>
   <script src="js/catalogo-painel-recuperado.js?v=20261026other187"></script>
   <script src="js/config.js?v=20261030fixes"></script>
-  <script src="js/product.js?v=20261031autoloop"></script>
+  <script src="js/product.js?v=20261107navigation"></script>
   <script src="js/promo.js?v=20261030fixes"></script>
 </body>
 </html>

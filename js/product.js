@@ -162,7 +162,7 @@ function renderizarProduto() {
     : loja.loja.logo;
 
   if (!produto) {
-    document.title = `Produto não encontrado · ${nomeLoja}`;
+    document.title = `Carregar produto · ${nomeLoja}`;
     $("#productNotFound").hidden = false;
     return;
   }
@@ -344,8 +344,17 @@ function adicionarAoCarrinho(comprarAgora = false) {
 }
 
 async function iniciarProduto() {
+  const id = params.get("id")?.trim();
+  if (!id) {
+    window.location.replace("index.html#grid");
+    return;
+  }
   loja = await window.carregarLojaRemota();
-  produto = loja.produtos.find((item) => item.id === params.get("id"));
+  produto = loja.produtos.find((item) => String(item.id) === id);
+  if (!produto && loja.catalogoDisponivel !== false) {
+    window.location.replace("index.html#grid");
+    return;
+  }
   renderizarProduto();
 }
 

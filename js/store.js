@@ -390,7 +390,7 @@ function renderProdutos() {
       (p) => `
       <article class="card">
         ${p.destaque ? `<span class="badge">Destaque</span>` : ""}
-        <div class="card-img" data-id="${window.escaparLoja(p.id)}"><img src="${window.escaparLoja(p.imagem)}" alt="${window.escaparLoja(p.nome)}" loading="lazy" decoding="async" width="480" height="320"></div>
+        <a class="card-img" href="${urlProduto(p.id)}" data-product-link="${window.escaparLoja(p.id)}"><img src="${window.escaparLoja(p.imagem)}" alt="${window.escaparLoja(p.nome)}" loading="lazy" decoding="async" width="480" height="320"></a>
         <div class="card-body">
           <div class="cat">${window.escaparLoja(p.publico && p.publico !== "Não informado" ? `${p.categoria} · ${p.publico}` : p.categoria)}</div>
           <h3><a href="${urlProduto(p.id)}" data-product-link="${window.escaparLoja(p.id)}">${window.escaparLoja(p.nome)}</a></h3>
@@ -411,18 +411,6 @@ function renderProdutos() {
     )
     .join("");
 
-  $$("[data-id]").forEach((el) => {
-    el.tabIndex = 0;
-    el.setAttribute("role", "link");
-    el.setAttribute("aria-label", `Ver detalhes de ${el.querySelector("img")?.alt || "produto"}`);
-    el.addEventListener("click", () => window.location.assign(urlProduto(el.dataset.id)));
-    el.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        window.location.assign(urlProduto(el.dataset.id));
-      }
-    });
-  });
   $$("[data-add]").forEach((el) =>
     el.addEventListener("click", () => adicionar(el.dataset.add, 1))
   );
