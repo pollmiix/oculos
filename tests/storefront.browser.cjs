@@ -60,6 +60,34 @@ async function main() {
   }
   const cart = [{ id: product.id, qtd: 1, preco: 90, nome: product.nome, imagem: product.imagem }];
   try {
+    for (const selector of ['.card-img', '.card h3 a', '[data-details]']) {
+      await check('Catalog link opens the selected product: ' + selector, {}, async (page, errors) => {
+        const selected = { ...product, id: 'second-glasses', nome: 'Segundo modelo' };
+        products = [product, selected];
+        await page.goto(base + '/index.html');
+        const link = page.locator(selector).nth(1);
+        await Promise.all([page.waitForURL('**/produto.html?id=' + selected.id), link.click()]);
+        await page.waitForSelector('#productPageContent:not([hidden])');
+        assert.equal(await page.locator('#productName').textContent(), selected.nome);
+        assert.equal(await page.locator('#productNotFound').isVisible(), false);
+        assert.deepEqual(errors, []);
+      });
+    }
+    for (const query of ['', '?id=', '?id=removed-product']) {
+      await check('Incomplete or removed product returns to catalog: ' + query, {}, async (page, errors) => {
+        await page.goto(base + '/produto.html' + query);
+        await page.waitForURL('**/index.html#grid');
+        await page.waitForSelector('[data-details]');
+        assert.deepEqual(errors, []);
+      });
+    }
+    await check('Catalog failure offers retry without claiming the product was removed', {}, async page => {
+      apiFailure = true;
+      await page.goto(base + '/produto.html?id=remote-only-product');
+      await page.waitForSelector('#productNotFound:not([hidden])');
+      assert.match(await page.locator('#productNotFound').textContent(), /Tentar novamente/);
+      assert.equal(new URL(page.url()).pathname, '/produto.html');
+    });
     await check('Add to bag stays on the product page', {}, async (page, errors) => {
       await page.goto(base + '/produto.html?id=' + product.id);
       await page.waitForFunction(() => document.querySelector('#productMainImage').naturalWidth > 0);
