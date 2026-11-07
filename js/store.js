@@ -385,7 +385,7 @@ function renderProdutos() {
       : '<div class="vazio">Nenhum produto encontrado. Ajuste ou limpe os filtros para ver outros produtos.</div>';
     return;
   }
-  grid.innerHTML = (loja.catalogoDisponivel === false ? '<div class="vazio" role="status">Catálogo indisponível no servidor. Exibindo uma prévia sem estoque confirmado.</div>' : '') + lista
+  grid.innerHTML = lista
     .map(
       (p) => `
       <article class="card">
