@@ -2,15 +2,14 @@
 declare(strict_types=1);
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 
-require dirname(__DIR__) . '/blackcat-gateway.php';
-require dirname(__DIR__) . '/blackcat-test-charge.php';
+require dirname(__DIR__) . '/gateway-test-charge.php';
 // Load production behavior with a fake HTTP boundary. No real charge is created.
 $source = file_get_contents(dirname(__DIR__) . '/umbrellapag-gateway.php');
 $start = strpos($source, 'function call_umbrellapag(');
 $end = strpos($source, 'function umbrellapag_payload(', $start);
 eval(substr(substr($source, 0, $start) . substr($source, $end), 5));
 $api = file_get_contents(dirname(__DIR__) . '/api.php');
-$start = strpos($api, 'function create_blackcat_payment(');
+$start = strpos($api, 'function create_gateway_payment(');
 $end = strpos($api, 'function export_csv(', $start);
 eval(substr($api, $start, $end - $start));
 class UmbrellaReply extends RuntimeException {
@@ -26,9 +25,9 @@ $pdo->exec('CREATE TABLE orders(id TEXT PRIMARY KEY,transaction_id TEXT,payment_
 $pdo->exec('CREATE TABLE payment_transactions(transaction_id TEXT PRIMARY KEY,amount INTEGER,external_ref TEXT,created_at INTEGER)');
 $pdo->exec('CREATE TABLE settings(`key` TEXT PRIMARY KEY,`value` TEXT,updated_at INTEGER)');
 $pdo->exec('CREATE TABLE gateway_test_charges(request_id TEXT PRIMARY KEY,admin_id INTEGER,transaction_id TEXT UNIQUE,external_ref TEXT UNIQUE,amount INTEGER,status TEXT,payload_hash TEXT,payment_json TEXT,created_at INTEGER,updated_at INTEGER)');
-$store = ['produtos' => [['id' => 'glasses']], 'pagamento' => ['metodo' => 'gateway', 'gateway' => ['provedor' => 'BlackCat']]];
+$store = ['produtos' => [['id' => 'glasses']], 'pagamento' => ['metodo' => 'gateway', 'gateway' => ['provedor' => 'RetiredGateway']]];
 $pdo->prepare('INSERT INTO settings VALUES(?,?,?)')->execute(['store', json_encode($store), time()]);
-$config = ['umbrellapag_api_key' => 'umbrella-test-only', 'blackcat_api_key' => 'blackcat-test-only', 'app_secret' => str_repeat('s', 40), 'public_base_url' => 'https://example.com'];
+$config = ['umbrellapag_api_key' => 'umbrella-test-only', 'app_secret' => str_repeat('s', 40), 'public_base_url' => 'https://example.com'];
 $owner = true; $posted = []; $updates = []; $requests = []; $remoteState = 'WAITING_PAYMENT'; $wrongAmount = false; $sellerBlocked = false; $pixEnabled = true; $transportFailure = false; $rejectCreation = false;
 function db(): PDO { return $GLOBALS['pdo']; }
 function config_value(string $key, string $default = ''): string { return $GLOBALS['config'][$key] ?? $default; }
@@ -55,11 +54,6 @@ function create_order(string $id, ?string $trx, string $state, string $payment, 
     db()->prepare('INSERT INTO orders VALUES(?,?,?,?,?)')->execute([$id, $trx, $method, $total, $pix]);
 }
 function update_payment(string $id, string $state, bool $transaction): bool { $GLOBALS['updates'][] = [$id, $state, $transaction]; return true; }
-function call_blackcat(string $path, string $method, string $key, ?array $payload = null, int $timeout = 25): array {
-    if ($method !== 'GET' || $key !== 'blackcat-test-only') throw new LogicException('Unexpected BlackCat operation');
-    $GLOBALS['requests'][] = ['blackcat', $path, $method, $payload];
-    return [200, ['data' => ['transactionId' => 'legacy-trx', 'amount' => 500, 'status' => 'PAID']]];
-}
 function call_umbrellapag(string $path, string $method, string $key, ?array $payload = null, int $timeout = 25): array {
     if ($key === '') throw new RuntimeException('Missing key');
     if ($key !== 'umbrella-test-only') throw new LogicException('Wrong key');
@@ -116,7 +110,10 @@ foreach ([['blocked', true, 'bloqueada'], ['blocked', null, 'blocked=false'], ['
     catch (LogicException $error) { throw $error; }
     catch (RuntimeException $expected) { check_umbrella(str_contains($expected->getMessage(), $diagnostic), 'Diagnostic did not identify seller failure'); }
 }
-check_umbrella(active_payment_provider($store) === 'blackcat' && active_payment_provider(null) === 'blackcat', 'Legacy default changed');
+check_umbrella(!umbrellapag_active($store) && !umbrellapag_active(null), 'Retired gateway must not activate Umbrella');
+$publicStore = umbrellapag_store($store);
+check_umbrella($publicStore['pagamento']['gateway'] === ['provedor' => 'UmbrellaPag', 'ativo' => false], 'Public config must expose only the current gateway without activating it');
+reply_umbrella(fn() => create_gateway_payment(), 409);
 $owner = false;
 reply_umbrella(fn() => umbrellapag_admin_status(), 403);
 reply_umbrella(fn() => umbrellapag_admin_connect(true), 403);
@@ -128,14 +125,14 @@ $sellerBlocked = false; $pixEnabled = false;
 reply_umbrella(fn() => umbrellapag_admin_connect(true), 422);
 $pixEnabled = true;
 reply_umbrella(fn() => umbrellapag_admin_connect(false), 200);
-check_umbrella(json_decode($pdo->query('SELECT value FROM settings')->fetchColumn(), true)['pagamento']['gateway']['provedor'] === 'BlackCat', 'Read-only connection check switched the store');
+check_umbrella(json_decode($pdo->query('SELECT value FROM settings')->fetchColumn(), true)['pagamento']['gateway']['provedor'] === 'RetiredGateway', 'Read-only connection check switched the store');
 reply_umbrella(fn() => umbrellapag_admin_connect(true), 200);
 $store = json_decode($pdo->query('SELECT value FROM settings')->fetchColumn(), true);
-check_umbrella(active_payment_provider($store) === 'umbrellapag', 'Activation did not persist provider');
+check_umbrella(umbrellapag_active($store), 'Activation did not persist provider');
 $posted = ['customer' => ['name' => 'Test Customer', 'email' => 'test@example.com', 'phone' => '11999999999', 'document' => ['number' => '52998224725']],
     'shipping' => ['street' => 'Test Road', 'number' => '10', 'neighborhood' => 'Centro', 'city' => 'City', 'state' => 'SP', 'zipCode' => '01001000'],
     'items' => [['id' => 'glasses', 'quantity' => 1]], 'amount' => 1];
-$charge = reply_umbrella(fn() => create_blackcat_payment(active_payment_provider($store)), 201);
+$charge = reply_umbrella(fn() => create_gateway_payment(), 201);
 check_umbrella($charge['provider'] === 'umbrellapag' && $charge['data']['amount'] === 12345 && $charge['data']['status'] === 'PENDING', 'Creation failed to normalize amount/provider/status');
 $sent = $requests[array_key_last($requests)][3];
 check_umbrella($sent['paymentMethod'] === 'PIX' && $sent['customer']['document']['type'] === 'CPF'
@@ -160,10 +157,11 @@ $posted['objectId'] = 'new-trx'; $remoteState = 'PAID';
 reply_umbrella(fn() => umbrellapag_webhook(), 200);
 check_umbrella($updates[array_key_last($updates)] === ['new-trx', 'PAID', true], 'Verified payment was not applied');
 reply_umbrella(fn() => payment_status('new-trx'), 200);
-$pdo->exec("INSERT INTO orders VALUES('old-order','legacy-trx','blackcat',500,NULL)");
+$pdo->exec("INSERT INTO orders VALUES('old-order','legacy-trx','retired_gateway',500,NULL)");
 $pdo->exec("INSERT INTO payment_transactions VALUES('legacy-trx',500,'legacy-ref',1)");
-reply_umbrella(fn() => payment_status('legacy-trx'), 200);
-check_umbrella($requests[array_key_last($requests)][0] === 'blackcat', 'Old payment was routed to new provider');
+$before = count($requests);
+reply_umbrella(fn() => payment_status('legacy-trx'), 410);
+check_umbrella(count($requests) === $before, 'A retired payment must never contact a gateway');
 reply_umbrella(fn() => payment_status('missing'), 404);
 $valid = ['data' => ['id' => 'trx', 'amount' => 100, 'paymentMethod' => 'PIX', 'currency' => 'BRL', 'status' => 'PAID']];
 foreach ([['id', 'other'], ['amount', '100'], ['currency', 'USD'], ['paymentMethod', 'credit_card'], ['status', 'UNKNOWN']] as [$field, $value]) {
@@ -178,24 +176,37 @@ foreach (['WAITING_PAYMENT' => 'PENDING', 'PROCESSING' => 'PENDING', 'PAID' => '
 $remoteState = 'WAITING_PAYMENT';
 $posted = ['requestId' => '11111111-1111-4111-8111-111111111111', 'amount' => '1,00', 'acknowledgeRealCharge' => true,
     'customer' => ['name' => 'Test Payer', 'email' => 'test@example.com', 'phone' => '11999999999', 'document' => '52998224725']];
-$test = reply_umbrella(fn() => blackcat_test_create('umbrellapag'), 201);
+$test = reply_umbrella(fn() => gateway_test_create(), 201);
 check_umbrella($test['data']['transactionId'] === 'test-trx', 'Admin test creation failed');
 $before = count($requests);
-reply_umbrella(fn() => blackcat_test_create('umbrellapag'), 200);
+reply_umbrella(fn() => gateway_test_create(), 200);
 check_umbrella(count($requests) === $before, 'Retried request created a duplicate charge');
 $remoteState = 'PAID';
-$test = reply_umbrella(fn() => blackcat_test_status('11111111-1111-4111-8111-111111111111'), 200);
+$test = reply_umbrella(fn() => gateway_test_status('11111111-1111-4111-8111-111111111111'), 200);
 check_umbrella($test['data']['status'] === 'PAID', 'Admin test status failed');
 $testReference = $pdo->query('SELECT external_ref FROM gateway_test_charges')->fetchColumn();
 $_GET = ['ref' => $testReference, 'token' => umbrellapag_callback_token($testReference, $config['app_secret'])];
 $posted = ['objectId' => 'test-trx'];
-reply_umbrella(fn() => blackcat_test_webhook('umbrellapag'), 200);
+reply_umbrella(fn() => gateway_test_webhook(), 200);
 check_umbrella((int)$pdo->query('SELECT COUNT(*) FROM orders')->fetchColumn() === 2, 'Admin test created a product order');
 $rejectCreation = true;
+foreach (['0.99', '100.01', '-1', '1e2', '1.001'] as $invalidAmount) {
+    try { gateway_test_amount($invalidAmount); throw new LogicException('Invalid test amount accepted'); }
+    catch (InvalidArgumentException $expected) {}
+}
+try { gateway_test_document('11111111111'); throw new LogicException('Invalid payer document accepted'); }
+catch (InvalidArgumentException $expected) {}
+$noConsent = ['requestId' => '33333333-3333-4333-8333-333333333333', 'amount' => '1,00', 'acknowledgeRealCharge' => false];
+try { gateway_test_input($noConsent); throw new LogicException('A test charge without consent was accepted'); }
+catch (InvalidArgumentException $expected) {}
+$before = count($requests);
+$pdo->exec("INSERT INTO gateway_test_charges VALUES('44444444-4444-4444-8444-444444444444',1,'retired-trx','GT44444444444444444444444444444444',100,'PENDING','hash',NULL,1,1)");
+reply_umbrella(fn() => gateway_test_status('44444444-4444-4444-8444-444444444444'), 404);
+check_umbrella(count($requests) === $before, 'Retired admin test contacted the new gateway');
 $posted = ['requestId' => '22222222-2222-4222-8222-222222222222', 'amount' => '1,00', 'acknowledgeRealCharge' => true,
     'customer' => ['name' => 'Test Payer', 'email' => 'test@example.com', 'phone' => '11999999999', 'document' => '52998224725']];
-$failure = reply_umbrella(fn() => blackcat_test_create('umbrellapag'), 422);
+$failure = reply_umbrella(fn() => gateway_test_create(), 422);
 check_umbrella(str_contains($failure['error'], 'HTTP 422') && str_contains($failure['error'], 'customer.address'), 'Test rejection does not identify the validation error');
 check_umbrella(!str_contains($failure['error'], 'umbrella-test-only') && !str_contains($failure['error'], 'test@example.com') && !str_contains($failure['error'], 'Test Payer'), 'Test rejection leaked private values');
 check_umbrella($pdo->query("SELECT status FROM gateway_test_charges WHERE request_id='22222222-2222-4222-8222-222222222222'")->fetchColumn() === 'FAILED', 'Rejected test was not marked failed');
-echo "Umbrella Pix creation, activation, payload, webhook verification, legacy routing and admin test checks passed.\n";
+echo "Umbrella Pix creation, activation, payload, webhook verification, retired gateway isolation and admin test checks passed.\n";

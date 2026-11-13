@@ -9,7 +9,6 @@ return [
     'admin_username' => 'admin',
     'admin_password' => '',
     'app_secret' => '',
-    'blackcat_api_key' => '', // Preserve para consultar cobranças antigas.
     'umbrellapag_api_key' => '',
     'analytics_retention_days' => 90,
     'public_base_url' => 'https://seu-dominio.com.br',

@@ -4,10 +4,18 @@ declare(strict_types=1);
 // Only the server talks to the gateway. Never accept a gateway URL or key from a buyer.
 const UMBRELLAPAG_API = 'https://api-gateway.umbrellapag.com/api';
 
-function active_payment_provider(?array $store): string
+function umbrellapag_active(?array $store): bool
 {
-    return strcasecmp((string)($store['pagamento']['gateway']['provedor'] ?? ''), 'UmbrellaPag') === 0
-        ? 'umbrellapag' : 'blackcat';
+    return ($store['pagamento']['metodo'] ?? '') === 'gateway'
+        && strcasecmp((string)($store['pagamento']['gateway']['provedor'] ?? ''), 'UmbrellaPag') === 0
+        && ($store['pagamento']['gateway']['ativo'] ?? true) === true;
+}
+
+function umbrellapag_store(array $store): array
+{
+    $active = umbrellapag_active($store);
+    $store['pagamento']['gateway'] = ['provedor' => 'UmbrellaPag', 'ativo' => $active];
+    return $store;
 }
 
 function call_umbrellapag(string $path, string $method, string $key, ?array $payload = null, int $timeout = 25): array
@@ -174,7 +182,7 @@ function umbrellapag_admin_status(): never
     $store = store_value();
     respond(200, ['configured' => config_value('umbrellapag_api_key') !== '',
         'transportReady' => function_exists('curl_init'), 'provider' => 'UmbrellaPag',
-        'active' => ($store['pagamento']['metodo'] ?? '') === 'gateway' && active_payment_provider($store) === 'umbrellapag']);
+        'active' => umbrellapag_active($store)]);
 }
 
 function umbrellapag_admin_connect(bool $activate): never
@@ -198,6 +206,7 @@ function umbrellapag_admin_connect(bool $activate): never
             if (!is_array($store) || empty($store['produtos'])) throw new RuntimeException('Publique o catálogo antes de ativar.');
             $store['pagamento']['metodo'] = 'gateway';
             $store['pagamento']['gateway']['provedor'] = 'UmbrellaPag';
+            $store['pagamento']['gateway']['ativo'] = true;
             $pdo->prepare('UPDATE settings SET `value`=?,updated_at=? WHERE `key`=?')
                 ->execute([json_encode(safe_store($store), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), time(), 'store']);
             $pdo->commit();

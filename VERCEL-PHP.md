@@ -1,6 +1,6 @@
 # PHP e MySQL na Vercel
 
-Para trocar o Pix da BlackCat pela UmbrellaPag, siga [UMBRELLAPAG-INTEGRACAO.md](UMBRELLAPAG-INTEGRACAO.md). O painel Gateway desta versão configura a UmbrellaPag; as instruções BlackCat abaixo ficam como referência da integração anterior.
+Para configurar o Pix automático UmbrellaPag, siga [UMBRELLAPAG-INTEGRACAO.md](UMBRELLAPAG-INTEGRACAO.md).
 
 O repositório inclui `vercel.json` e `api/index.php` para executar a API com o runtime comunitário `vercel-php@0.9.0`. A tela do painel está diretamente em `/admin.php`; o antigo endereço `/admin.html` redireciona para ela.
 
@@ -27,7 +27,6 @@ Na Vercel, abra o projeto da loja e vá a **Settings → Environment Variables**
 | `APP_SECRET` | Segredo aleatório com pelo menos 32 caracteres |
 | `PUBLIC_BASE_URL` | `https://vemariotica.online` |
 | `ANALYTICS_RETENTION_DAYS` | `90` |
-| `BLACKCAT_API_KEY` | Opcional: chave privada do gateway, somente se for usá-lo |
 | `UMBRELLAPAG_API_KEY` | Chave privada da UmbrellaPag para receber Pix; configure em Production e faça Redeploy |
 
 Não coloque esses valores no GitHub, em arquivos JavaScript ou em mensagens públicas. Não existe senha administrativa padrão. A conta será criada no primeiro acesso à API, se o banco ainda não tiver administradores.
@@ -43,25 +42,6 @@ Não coloque esses valores no GitHub, em arquivos JavaScript ou em mensagens pú
 
 Mudar `ADMIN_PASSWORD` nas variáveis depois de criar a conta não altera a senha já gravada no banco. Configurações, pedidos e contas de outra hospedagem não são transferidos automaticamente.
 
-## 4. Ativar Pix automático BlackCat
+## 4. Pix automatico
 
-1. Se uma chave privada foi exposta, redefina as credenciais no gateway. Cadastre a nova chave como `BLACKCAT_API_KEY` em **Production** na Vercel e faça **Redeploy**. Não coloque a chave em mensagens, arquivos públicos ou no painel da loja.
-2. Entre em `/admin.php`, abra **Gateway** e clique em **Verificar conexão**. Essa verificação consulta a identificação da conta na BlackCat, sem criar uma cobrança.
-3. Confira o nome da conta e clique em **Ativar Pix automático**. A ativação valida a conexão novamente e altera apenas o método de pagamento do catálogo compartilhado.
-4. Valide uma compra e seu recebimento antes de considerar a integração operacional. A existência da variável de ambiente, sozinha, não comprova que uma cobrança foi criada ou paga com sucesso.
-
-As novas cobranças incluem automaticamente uma URL de notificação com token por pedido. A loja consulta a transação diretamente na BlackCat e confere o ID e o valor antes de atualizar o pagamento. Notificações repetidas são tratadas sem duplicar o evento da compra. A chave pública e a configuração de split não são enviadas neste fluxo Pix.
-
-## 5. Testar o QR Code pelo painel
-
-Em **Gateway → Testar QR Code BlackCat**, informe um valor de R$ 1,00 a R$ 100,00 e os seus próprios dados. A confirmação na tela é obrigatória: o botão cria uma cobrança Pix real na conta do gateway. Pagar essa cobrança movimenta dinheiro e pode gerar taxas.
-
-O painel mostra o QR Code, o código Copia e Cola e a situação verificada na BlackCat. Os testes ficam na tabela `gateway_test_charges`, separados dos pedidos de produtos, do faturamento de produtos e do estoque. Os dados pessoais do pagador são enviados ao gateway; a linha de teste guarda somente um hash dos dados enviados, o valor, o identificador e os dados necessários para exibir o Pix.
-
-Cada envio usa um identificador único, reservado antes da chamada ao gateway. Repetir esse identificador não cria outra cobrança. Se houver perda de resposta, consulte o teste existente antes de gerar outro. A confirmação usa o ID e o valor da transação consultados diretamente na BlackCat, inclusive para notificações automáticas.
-
-## Referências
-
-- Runtime PHP: https://github.com/vercel-community/php
-- Configuração da Vercel: https://vercel.com/docs/project-configuration
-- Documentação da BlackCat: https://docs.blackcatoficial.com/
+Siga [UMBRELLAPAG-INTEGRACAO.md](UMBRELLAPAG-INTEGRACAO.md) para configurar a chave privada, verificar a conta, testar um pagamento e ativar a UmbrellaPag. Este e o unico gateway desta versao. A integracao anterior foi removida; o historico de pedidos foi preservado.

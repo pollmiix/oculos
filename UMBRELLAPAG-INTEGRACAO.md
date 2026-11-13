@@ -1,6 +1,6 @@
 # UmbrellaPag: Pix na Vercel
 
-A troca é ativada pelo painel depois que a conta é verificada. Publicar o código não muda automaticamente o gateway dos pedidos novos. Cobranças anteriores continuam sendo consultadas na BlackCat; mantenha `BLACKCAT_API_KEY` enquanto houver pagamentos antigos pendentes.
+A UmbrellaPag é o único gateway de pagamento desta versão. A ativação exige verificar a conta no painel. A integração anterior foi removida: pedidos antigos permanecem no histórico, mas suas cobranças devem ser consultadas diretamente no provedor de origem. Publicar esta remoção não confirma a aprovação de cobranças pela UmbrellaPag.
 
 ## Configurar
 
@@ -22,7 +22,7 @@ O servidor calcula valores pelo catálogo e envia somente Pix. A URL de notifica
 
 Os dados de Pix são normalizados para o checkout existente. A documentação pública não traz um exemplo completo de resposta Pix aprovada; é necessário validar os campos retornados pela conta real, sem compartilhar credenciais, antes de ativar vendas. Os testes locais usam respostas simuladas e não comprovam a liberação da conta na UmbrellaPag.
 
-Esta integração está no backend PHP usado pela Vercel. O servidor Python de desenvolvimento continua com a integração anterior e não deve ser usado para validar a UmbrellaPag.
+Esta integração está no backend PHP usado pela Vercel. O servidor Python de desenvolvimento suporta apenas Pix manual e não deve ser usado para validar a UmbrellaPag.
 
 ## Referências oficiais
 

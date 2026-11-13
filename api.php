@@ -10,14 +10,12 @@ require_once __DIR__ . '/merchant-images.php';
 require_once __DIR__ . '/product-identifiers.php';
 require_once __DIR__ . '/store-policies.php';
 require_once __DIR__ . '/store-pricing.php';
-require_once __DIR__ . '/blackcat-gateway.php';
 require_once __DIR__ . '/umbrellapag-gateway.php';
-require_once __DIR__ . '/blackcat-test-charge.php';
+require_once __DIR__ . '/gateway-test-charge.php';
 require_once __DIR__ . '/visitors.php';
 
 const SESSION_SECONDS = 28800;
 const MAX_BODY_SIZE = 8388608;
-const BLACKCAT_API = 'https://api.blackcatoficial.com/api';
 
 function respond(int $status, array $value, array $headers = []): never
 {
@@ -351,6 +349,7 @@ function send_merchant_feed(): never
 
 function safe_store(array $store): array
 {
+    $store = umbrellapag_store($store);
     $store = confirmed_store_policies($store);
     unset($store['senhaAdmin']);
     if (isset($store['pagamento']['gateway']) && is_array($store['pagamento']['gateway'])) {
@@ -674,34 +673,6 @@ function send_csv(string $kind, array $rows): never
     exit;
 }
 
-function call_blackcat(string $path, string $method, string $apiKey, ?array $payload = null, int $timeout = 25): array
-{
-    if (!function_exists('curl_init')) {
-        throw new RuntimeException('A extensão cURL do PHP precisa estar ativada para usar o gateway.');
-    }
-    $handle = curl_init(BLACKCAT_API . $path);
-    $headers = ['X-API-Key: ' . $apiKey, 'Accept: application/json'];
-    curl_setopt_array($handle, [CURLOPT_RETURNTRANSFER => true, CURLOPT_CUSTOMREQUEST => $method,
-        CURLOPT_HTTPHEADER => $headers, CURLOPT_CONNECTTIMEOUT => min(5, $timeout), CURLOPT_TIMEOUT => $timeout]);
-    if ($payload !== null) {
-        $headers[] = 'Content-Type: application/json';
-        curl_setopt($handle, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($handle, CURLOPT_POSTFIELDS, json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
-    }
-    $body = curl_exec($handle);
-    $status = (int)curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
-    if ($body === false) {
-        curl_close($handle);
-        throw new RuntimeException('Não foi possível contactar a BlackCat.');
-    }
-    curl_close($handle);
-    $decoded = json_decode($body, true);
-    if (!is_array($decoded)) {
-        throw new RuntimeException('A BlackCat retornou uma resposta inválida.');
-    }
-    return [$status, $decoded];
-}
-
 function create_order_items(array $requested, array $store, bool $gateway = false): array
 {
     $products = [];
@@ -765,20 +736,17 @@ function route_request(): void
         send_merchant_feed();
     }
     if ($method === 'GET' && $path === '/api/health') {
-        $provider = active_payment_provider(store_value());
-        respond(200, ['ok' => true, 'paymentConfigured' => config_value($provider . '_api_key') !== '',
+        respond(200, ['ok' => true, 'paymentConfigured' => config_value('umbrellapag_api_key') !== '' && umbrellapag_active(store_value()),
             'adminConfigured' => (int)$pdo->query('SELECT COUNT(*) FROM admins')->fetchColumn() > 0]);
     }
     if ($method === 'GET' && $path === '/api/admin/gateway/status') umbrellapag_admin_status();
     if ($method === 'POST' && $path === '/api/admin/gateway/test') umbrellapag_admin_connect(false);
     if ($method === 'POST' && $path === '/api/admin/gateway/activate') umbrellapag_admin_connect(true);
     if ($method === 'GET' && preg_match('#^/api/admin/gateway/transactions/([A-Za-z0-9_-]{1,120})$#D', $path, $inspectionMatch)) umbrellapag_inspect_transaction($inspectionMatch[1]);
-    if ($method === 'POST' && $path === '/api/admin/gateway/charges') blackcat_test_create('umbrellapag');
-    if ($method === 'GET' && preg_match('#^/api/admin/gateway/charges/([a-f0-9-]{36})$#D', $path, $testMatch)) blackcat_test_status($testMatch[1]);
-    if ($method === 'POST' && $path === '/api/webhooks/blackcat') blackcat_webhook();
-    if ($method === 'POST' && $path === '/api/webhooks/blackcat-test') blackcat_test_webhook();
+    if ($method === 'POST' && $path === '/api/admin/gateway/charges') gateway_test_create();
+    if ($method === 'GET' && preg_match('#^/api/admin/gateway/charges/([a-f0-9-]{36})$#D', $path, $testMatch)) gateway_test_status($testMatch[1]);
     if ($method === 'POST' && $path === '/api/webhooks/umbrellapag') umbrellapag_webhook();
-    if ($method === 'POST' && $path === '/api/webhooks/umbrellapag-test') blackcat_test_webhook('umbrellapag');
+    if ($method === 'POST' && $path === '/api/webhooks/umbrellapag-test') gateway_test_webhook();
     if ($method === 'GET' && $path === '/api/store') {
         $store = store_value();
         if ($store === null) {
@@ -885,13 +853,12 @@ function route_request(): void
         if (isset($value['pagamento']) && (!is_array($value['pagamento']) || !in_array($value['pagamento']['metodo'] ?? null, ['pix', 'gateway'], true))) {
             throw new InvalidArgumentException('Escolha PIX ou gateway como forma de pagamento.');
         }
-        if (($value['pagamento']['metodo'] ?? '') === 'gateway' && config_value(active_payment_provider($value) . '_api_key') === '') {
+        if (($value['pagamento']['metodo'] ?? '') === 'gateway' && config_value('umbrellapag_api_key') === '') {
             throw new InvalidArgumentException('Configure a chave privada na Vercel e verifique a conexão na área Gateway antes de ativar.');
         }
         if (($value['pagamento']['metodo'] ?? '') === 'gateway') {
             $current = store_value();
-            if (($current['pagamento']['metodo'] ?? '') !== 'gateway'
-                || active_payment_provider($current) !== active_payment_provider($value)) {
+            if (!umbrellapag_active($current) || !umbrellapag_active($value)) {
                 throw new InvalidArgumentException('Use Verificar conexão e Ativar Pix automático na área Gateway antes de salvar a troca de provedor.');
             }
         }
@@ -937,12 +904,8 @@ function route_request(): void
     if ($method === 'POST' && preg_match('#^/api/orders/manual/([A-Za-z0-9_-]{1,100})/report$#', $path, $match)) {
         report_manual_order_payment($match[1]);
     }
-    if ($method === 'POST' && $path === '/api/payments/blackcat') {
-        // Cached storefronts also follow the provider activated on the server.
-        create_blackcat_payment(active_payment_provider(store_value()));
-    }
     if ($method === 'POST' && $path === '/api/payments/pix') {
-        create_blackcat_payment(active_payment_provider(store_value()));
+        create_gateway_payment();
     }
     respond(404, ['error' => 'Não encontrado.']);
 }
@@ -1145,17 +1108,17 @@ function report_manual_order_payment(string $orderId): never
     respond(200, ['success' => true, 'paymentStatus' => 'reported']);
 }
 
-function create_blackcat_payment(string $provider = 'blackcat'): never
+function create_gateway_payment(): never
 {
     if (rate_limited('create-payment', 8, 60)) {
         respond(429, ['error' => 'Muitas tentativas. Aguarde um minuto e tente novamente.']);
     }
-    $apiKey = config_value($provider . '_api_key');
+    $apiKey = config_value('umbrellapag_api_key');
     if ($apiKey === '') {
         respond(503, ['error' => 'O gateway não está configurado no servidor.']);
     }
     $store = store_value();
-    if (!$store || ($store['pagamento']['metodo'] ?? '') !== 'gateway') {
+    if (!umbrellapag_active($store)) {
         respond(409, ['error' => 'A loja ainda não ativou o gateway no painel sincronizado.']);
     }
     $data = json_body(131072);
@@ -1197,34 +1160,26 @@ function create_blackcat_payment(string $provider = 'blackcat'): never
         'shipping' => $address, 'pix' => ['expiresInDays' => 1], 'externalRef' => $externalRef];
     $publicBase = rtrim(config_value('public_base_url', 'https://vemariotica.online'), '/');
     if (parse_url($publicBase, PHP_URL_SCHEME) !== 'https') throw new RuntimeException('Configure PUBLIC_BASE_URL com HTTPS.');
-    $callbackToken = $provider === 'umbrellapag'
-        ? umbrellapag_callback_token($externalRef, config_value('app_secret'))
-        : blackcat_callback_token($externalRef, config_value('app_secret'));
-    $payload['postbackUrl'] = $publicBase . '/api/webhooks/' . $provider . '?ref=' . rawurlencode($externalRef)
+    $callbackToken = umbrellapag_callback_token($externalRef, config_value('app_secret'));
+    $payload['postbackUrl'] = $publicBase . '/api/webhooks/umbrellapag?ref=' . rawurlencode($externalRef)
         . '&token=' . $callbackToken;
     try {
-        if ($provider === 'umbrellapag') {
-            [$status, $response] = call_umbrellapag('/user/transactions', 'POST', $apiKey, umbrellapag_payload($payload));
-        } else {
-            [$status, $response] = call_blackcat('/sales/create-sale', 'POST', $apiKey, $payload);
-        }
+        [$status, $response] = call_umbrellapag('/user/transactions', 'POST', $apiKey, umbrellapag_payload($payload));
     } catch (RuntimeException $error) {
         respond(502, ['error' => $error->getMessage()]);
     }
     $transaction = $response['data'] ?? null;
-    if ($provider === 'umbrellapag' && $status >= 400 && $status < 500) {
+    if ($status >= 400 && $status < 500) {
         respond(422, ['error' => umbrellapag_rejection($status, $response, [$payload['customer'], $address, $apiKey])]);
     }
-    $idField = $provider === 'umbrellapag' ? 'id' : 'transactionId';
+    $idField = 'id';
     if (!in_array($status, [200, 201], true) || !is_array($transaction)
         || !is_string($transaction[$idField] ?? null) || !preg_match('/^[A-Za-z0-9_-]{1,100}$/D', $transaction[$idField])) {
         respond(502, ['error' => 'O gateway não criou a cobrança. Confira os dados e a configuração da conta.']);
     }
     $transactionId = $transaction[$idField];
     try {
-        $transaction = $provider === 'umbrellapag'
-            ? umbrellapag_confirmed_transaction($response, $transactionId, $total)
-            : blackcat_confirmed_transaction($response, $transactionId, $total);
+        $transaction = umbrellapag_confirmed_transaction($response, $transactionId, $total);
     }
     catch (RuntimeException) { respond(502, ['error' => 'O gateway não confirmou o valor e a situação da cobrança criada. Fale com a loja antes de tentar novamente.']); }
     $paymentData = is_array($transaction['paymentData'] ?? null) ? $transaction['paymentData'] : [];
@@ -1233,7 +1188,7 @@ function create_blackcat_payment(string $provider = 'blackcat'): never
         db()->beginTransaction();
         $insert = db()->prepare('INSERT INTO payment_transactions(transaction_id,amount,external_ref,created_at) VALUES(?,?,?,?)');
         $insert->execute([$transactionId, $total, $externalRef, time()]);
-        create_order($externalRef, $transactionId, 'awaiting_payment', 'pending', $provider, $total,
+        create_order($externalRef, $transactionId, 'awaiting_payment', 'pending', 'umbrellapag', $total,
             ['name' => $name, 'email' => $email, 'phone' => $phone, 'shipping' => $address], $items,
             analytics_session($data['analyticsSessionId'] ?? null), $pixPayload !== '' ? $pixPayload : null);
         update_payment($transactionId, $transaction['status'], true);
@@ -1242,16 +1197,16 @@ function create_blackcat_payment(string $provider = 'blackcat'): never
         if (db()->inTransaction()) {
             db()->rollBack();
         }
-        error_log($provider . ' sale created but order persistence failed: ' . $error->getMessage());
+        error_log('UmbrellaPag sale created but order persistence failed: ' . $error->getMessage());
         respond(500, ['error' => 'A cobrança foi criada, mas não foi possível registrar o pedido. Entre em contato com a loja antes de tentar pagar novamente.']);
     }
-    if ($provider === 'umbrellapag' && !in_array($transaction['status'], ['PENDING', 'PAID'], true)) {
+    if (!in_array($transaction['status'], ['PENDING', 'PAID'], true)) {
         respond(422, ['error' => 'A UmbrellaPag recusou ou cancelou esta cobrança. Confira os dados com a loja.']);
     }
-    if ($provider === 'umbrellapag' && $pixPayload === '' && $transaction['status'] === 'PENDING') {
+    if ($pixPayload === '' && $transaction['status'] === 'PENDING') {
         respond(502, ['error' => 'A cobrança foi registrada, mas o código Pix não chegou. Fale com a loja antes de gerar outra cobrança.', 'transactionId' => $transactionId]);
     }
-    respond(201, ['success' => true, 'provider' => $provider, 'data' => ['transactionId' => $transactionId,
+    respond(201, ['success' => true, 'provider' => 'umbrellapag', 'data' => ['transactionId' => $transactionId,
         'status' => $transaction['status'] ?? 'PENDING', 'amount' => $total,
         'invoiceUrl' => $transaction['invoiceUrl'] ?? null,
         'paymentData' => ['qrCode' => $paymentData['qrCode'] ?? null,
@@ -1270,25 +1225,19 @@ function payment_status(string $transactionId): never
     if (!$record) {
         respond(404, ['error' => 'Não foi encontrado um pedido correspondente a esta cobrança.']);
     }
-    // A store can change gateways while older charges are still awaiting payment.
-    $provider = $record['payment_method'];
-    if (!in_array($provider, ['blackcat', 'umbrellapag'], true)) respond(409, ['error' => 'Provedor de pagamento inválido.']);
+    if ($record['payment_method'] !== 'umbrellapag') respond(410, ['error' => 'A integração do gateway anterior foi removida. Consulte o histórico do pagamento no provedor de origem.']);
     $amount = (int)$record['amount'];
-    $apiKey = config_value($provider . '_api_key');
+    $apiKey = config_value('umbrellapag_api_key');
     if ($apiKey === '') respond(503, ['error' => 'Configure a chave do gateway responsável por esta cobrança.']);
     try {
-        [$status, $response] = $provider === 'umbrellapag'
-            ? call_umbrellapag('/user/transactions/' . rawurlencode($transactionId), 'GET', $apiKey)
-            : call_blackcat('/sales/' . rawurlencode($transactionId) . '/status', 'GET', $apiKey);
+        [$status, $response] = call_umbrellapag('/user/transactions/' . rawurlencode($transactionId), 'GET', $apiKey);
     } catch (RuntimeException) {
         respond(502, ['error' => 'Não foi possível consultar o status no gateway.']);
     }
     $data = $response['data'] ?? null;
     try {
         if ($status !== 200) throw new RuntimeException('Falha na consulta.');
-        $data = $provider === 'umbrellapag'
-            ? umbrellapag_confirmed_transaction($response, $transactionId, $amount)
-            : blackcat_confirmed_transaction($response, $transactionId, $amount);
+        $data = umbrellapag_confirmed_transaction($response, $transactionId, $amount);
     } catch (RuntimeException) {
         respond(502, ['error' => 'O gateway não confirmou o status nem o valor desta cobrança.']);
     }

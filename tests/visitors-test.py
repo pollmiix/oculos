@@ -63,7 +63,7 @@ class VisitorTests(unittest.TestCase):
     def test_delete_preserves_orders_and_blocks(self):
         self.record()
         database.record_event('view_item', self.session, '/produto.html')
-        database.create_order('order-1', 'trx-1', 'paid', 'paid', 'blackcat', 15900, {}, [], self.session)
+        database.create_order('order-1', 'trx-1', 'paid', 'paid', 'umbrellapag', 15900, {}, [], self.session)
         visitors.action({'action': 'block', 'sessionId': self.session})
         visitors.action({'action': 'delete', 'sessionId': self.session})
         self.assertEqual(visitors.listing()['total'], 0)

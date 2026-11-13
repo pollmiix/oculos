@@ -221,7 +221,7 @@ function renderPainel() {
           </div>
         </section>
         <div class="grid2">
-          <label>Provedor do checkout<input id="gateway_provedor" value="${esc(estado.pagamento.gateway.provedor || "UmbrellaPag")}" readonly></label>
+          <label>Provedor do checkout<input id="gateway_provedor" value="UmbrellaPag" readonly></label>
         </div>
       </div>
 
@@ -337,6 +337,7 @@ function renderPainel() {
   if (adminRole === "owner") window.iniciarConexaoGateway(adminCsrfToken, () => {
     estado.pagamento.metodo = "gateway";
     estado.pagamento.gateway.provedor = "UmbrellaPag";
+    estado.pagamento.gateway.ativo = true;
     document.getElementById("gateway_provedor").value = "UmbrellaPag";
     document.querySelector('input[name="metodoPagamento"][value="gateway"]').checked = true;
     atualizarConfiguracaoPagamento();
@@ -682,7 +683,7 @@ async function carregarRelatorioAdmin(view) {
     if (view === "orders") {
       const { orders } = await adminFetch("/api/admin/orders");
       const paymentLabels = { pending: "Aguardando pagamento", reported: "Pagamento informado", paid: "Pago", cancelled: "Cancelado", refunded: "Reembolsado" };
-      const paymentMethods = { pix: "PIX", pix_manual: "PIX manual", blackcat: "BlackCat", umbrellapag: "UmbrellaPag" };
+      const paymentMethods = { pix: "PIX", pix_manual: "PIX manual", umbrellapag: "UmbrellaPag" };
       target.innerHTML = orders.length ? `<div class="order-list">${orders.map((o) => {
         const customer = o.customer || {};
         const shipping = customer.shipping || {};
@@ -724,7 +725,7 @@ async function carregarRelatorioAdmin(view) {
             </div>
             ${pixPayload ? `<div class="order-pix"><h3>PIX gerado · ${dinheiroAdmin(o.total_cents)}</h3><div class="order-pix-content">${pixQrMarkup}<label>Código Copia e Cola<textarea readonly rows="4">${esc(pixPayload)}</textarea></label></div><button class="btn btn-ghost" data-copy-pix type="button">Copiar código PIX</button></div>` : ""}
             <div class="order-actions"><label>Status do pagamento<select data-order-status="${esc(o.id)}">${["pending", "reported", "paid", "cancelled", "refunded"].map((value) => `<option value="${value}" ${o.payment_status === value ? "selected" : ""}>${esc(paymentLabels[value])}</option>`).join("")}</select></label>
-              <p>Forma de pagamento: ${esc(paymentMethods[o.payment_method] || o.payment_method || "Não informado")}</p>
+              <p>Forma de pagamento: ${esc(paymentMethods[o.payment_method] || "Gateway anterior")}</p>
               <button class="btn btn-ghost" data-save-order="${esc(o.id)}" type="button">Atualizar pagamento</button>
             </div>
           </div>
