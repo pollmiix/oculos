@@ -81,6 +81,20 @@ function reply_umbrella(callable $fn, int $expected): array {
     }
     throw new RuntimeException('Missing response');
 }
+$sellerResponse = ['data' => ['legalName' => 'Test Seller', 'blocked' => false, 'permissions' => ['isPixAvailable' => true]]];
+check_umbrella(umbrellapag_verified_seller(200, $sellerResponse)['name'] === 'Test Seller', 'Valid seller rejected');
+check_umbrella(umbrellapag_verified_seller(201, $sellerResponse)['name'] === 'Test Seller', 'Successful seller response rejected');
+foreach ([401, 403, 429, 500] as $httpCode) {
+    try { umbrellapag_verified_seller($httpCode, $sellerResponse); throw new LogicException('Failed HTTP response accepted'); }
+    catch (LogicException $error) { throw $error; }
+    catch (RuntimeException $expected) { check_umbrella(str_contains($expected->getMessage(), (string)$httpCode), 'Diagnostic did not identify HTTP failure'); }
+}
+foreach ([['blocked', true, 'bloqueada'], ['blocked', null, 'blocked=false'], ['permissions', ['isPixAvailable' => false], 'não está liberado'], ['permissions', [], 'isPixAvailable=true'], ['legalName', '', 'legalName']] as [$field, $value, $diagnostic]) {
+    $invalid = $sellerResponse; $invalid['data'][$field] = $value;
+    try { umbrellapag_verified_seller(200, $invalid); throw new LogicException('Invalid seller was allowed to activate'); }
+    catch (LogicException $error) { throw $error; }
+    catch (RuntimeException $expected) { check_umbrella(str_contains($expected->getMessage(), $diagnostic), 'Diagnostic did not identify seller failure'); }
+}
 check_umbrella(active_payment_provider($store) === 'blackcat' && active_payment_provider(null) === 'blackcat', 'Legacy default changed');
 $owner = false;
 reply_umbrella(fn() => umbrellapag_admin_status(), 403);

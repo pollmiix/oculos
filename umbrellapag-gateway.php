@@ -87,12 +87,23 @@ function umbrellapag_callback_token(string $reference, string $secret): string
 function umbrellapag_check_connection(): array
 {
     [$status, $response] = call_umbrellapag('/user/sellers', 'GET', config_value('umbrellapag_api_key'));
+    return umbrellapag_verified_seller($status, $response);
+}
+
+function umbrellapag_verified_seller(int $status, array $response): array
+{
+    // Explain the failure without exposing the response, account documents or key.
+    if ($status === 401) throw new RuntimeException('UmbrellaPag: chave de API não aceita (HTTP 401). Confira UMBRELLAPAG_API_KEY em Production e faça Redeploy após corrigir.');
+    if ($status === 403) throw new RuntimeException('UmbrellaPag: acesso à consulta da conta negado (HTTP 403). Peça ao suporte a liberação desta chave para consultar a empresa e receber Pix.');
+    if ($status === 429) throw new RuntimeException('UmbrellaPag: limite de consultas atingido (HTTP 429). Aguarde um minuto e tente novamente.');
+    if (!in_array($status, [200, 201], true)) throw new RuntimeException('UmbrellaPag: falha ao consultar a empresa (HTTP ' . $status . '). Informe este código ao suporte da UmbrellaPag.');
     $seller = $response['data'] ?? null;
-    if ($status !== 200 || !is_array($seller) || !empty($response['error'])
-        || !is_string($seller['legalName'] ?? null) || ($seller['blocked'] ?? true) !== false
-        || ($seller['permissions']['isPixAvailable'] ?? false) !== true) {
-        throw new RuntimeException('Confira a chave da UmbrellaPag e se a conta está liberada para receber Pix.');
-    }
+    if (!is_array($seller) || !empty($response['error'])) throw new RuntimeException('UmbrellaPag: a consulta não retornou os dados da empresa no formato esperado. Informe ao suporte que a consulta /api/user/sellers não retornou data da empresa.');
+    if (($seller['blocked'] ?? null) === true) throw new RuntimeException('UmbrellaPag: a API informou que a conta está bloqueada. Solicite a liberação ao suporte do gateway.');
+    if (($seller['permissions']['isPixAvailable'] ?? null) === false) throw new RuntimeException('UmbrellaPag: a API informou que Pix não está liberado para esta conta. Solicite a habilitação ao suporte do gateway.');
+    if (!is_string($seller['legalName'] ?? null) || trim($seller['legalName']) === '') throw new RuntimeException('UmbrellaPag: a resposta da empresa não informou legalName. Solicite ao suporte a confirmação do formato de /api/user/sellers.');
+    if (($seller['blocked'] ?? null) !== false) throw new RuntimeException('UmbrellaPag: a resposta da empresa não confirmou blocked=false. A ativação depende dessa confirmação pelo gateway.');
+    if (($seller['permissions']['isPixAvailable'] ?? null) !== true) throw new RuntimeException('UmbrellaPag: a resposta da empresa não confirmou permissions.isPixAvailable=true. Solicite ao suporte a confirmação da liberação do Pix pela API.');
     return ['name' => $seller['legalName']];
 }
 
