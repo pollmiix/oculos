@@ -1211,6 +1211,9 @@ function create_blackcat_payment(string $provider = 'blackcat'): never
         respond(502, ['error' => $error->getMessage()]);
     }
     $transaction = $response['data'] ?? null;
+    if ($provider === 'umbrellapag' && $status >= 400 && $status < 500) {
+        respond(422, ['error' => umbrellapag_rejection($status, $response, [$payload['customer'], $address, $apiKey])]);
+    }
     $idField = $provider === 'umbrellapag' ? 'id' : 'transactionId';
     if (!in_array($status, [200, 201], true) || !is_array($transaction)
         || !is_string($transaction[$idField] ?? null) || !preg_match('/^[A-Za-z0-9_-]{1,100}$/D', $transaction[$idField])) {

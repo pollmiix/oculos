@@ -213,7 +213,7 @@ function renderPainel() {
           </div>
         </section>
         <div class="grid2">
-          <label>Provedor<input id="gateway_provedor" value="${esc(estado.pagamento.gateway.provedor || "UmbrellaPag")}" readonly></label>
+          <label>Provedor do checkout<input id="gateway_provedor" value="${esc(estado.pagamento.gateway.provedor || "UmbrellaPag")}" readonly></label>
         </div>
       </div>
 

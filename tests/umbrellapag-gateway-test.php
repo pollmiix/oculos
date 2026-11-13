@@ -29,7 +29,7 @@ $pdo->exec('CREATE TABLE gateway_test_charges(request_id TEXT PRIMARY KEY,admin_
 $store = ['produtos' => [['id' => 'glasses']], 'pagamento' => ['metodo' => 'gateway', 'gateway' => ['provedor' => 'BlackCat']]];
 $pdo->prepare('INSERT INTO settings VALUES(?,?,?)')->execute(['store', json_encode($store), time()]);
 $config = ['umbrellapag_api_key' => 'umbrella-test-only', 'blackcat_api_key' => 'blackcat-test-only', 'app_secret' => str_repeat('s', 40), 'public_base_url' => 'https://example.com'];
-$owner = true; $posted = []; $updates = []; $requests = []; $remoteState = 'WAITING_PAYMENT'; $wrongAmount = false; $sellerBlocked = false; $pixEnabled = true; $transportFailure = false;
+$owner = true; $posted = []; $updates = []; $requests = []; $remoteState = 'WAITING_PAYMENT'; $wrongAmount = false; $sellerBlocked = false; $pixEnabled = true; $transportFailure = false; $rejectCreation = false;
 function db(): PDO { return $GLOBALS['pdo']; }
 function config_value(string $key, string $default = ''): string { return $GLOBALS['config'][$key] ?? $default; }
 function store_value(): array { return $GLOBALS['store']; }
@@ -66,6 +66,10 @@ function call_umbrellapag(string $path, string $method, string $key, ?array $pay
     $GLOBALS['requests'][] = ['umbrellapag', $path, $method, $payload];
     if ($GLOBALS['transportFailure']) throw new RuntimeException('Timeout');
     if ($path === '/user/sellers') return [200, ['data' => ['legalName' => 'Test Seller', 'blocked' => $GLOBALS['sellerBlocked'], 'permissions' => ['isPixAvailable' => $GLOBALS['pixEnabled']]]]];
+    if ($method === 'POST') {
+        foreach ($payload['items'] as $item) check_umbrella(!empty($item['externalRef']), 'Missing item reference in Umbrella request');
+        if ($GLOBALS['rejectCreation']) return [422, ['message' => ['customer.address must be an object', 'Test Payer test@example.com umbrella-test-only'], 'errors' => ['amount' => ['amount must be at least 500']]]];
+    }
     $isTest = $payload !== null && str_starts_with($payload['customer']['externalRef'], 'GU');
     $id = $method === 'POST' ? ($isTest ? 'test-trx' : 'new-trx') : basename($path);
     $amount = $method === 'POST' ? $payload['amount'] : ($id === 'test-trx' ? 100 : 12345);
@@ -81,6 +85,10 @@ function reply_umbrella(callable $fn, int $expected): array {
     }
     throw new RuntimeException('Missing response');
 }
+$diagnostic = umbrellapag_rejection(422, ['message' => ['customer.address is required', 'Payer Name payer@example.com 123.456.789-00'], 'error' => ['message' => 'secret-test-value'], 'errors' => ['amount' => ['amount must be at least 500']]], ['Payer Name', 'secret-test-value']);
+check_umbrella(str_contains($diagnostic, 'HTTP 422') && str_contains($diagnostic, 'customer.address') && str_contains($diagnostic, 'amount must be at least 500'), 'Gateway validation details were lost');
+foreach (['Payer Name', 'payer@example.com', '123.456.789-00', 'secret-test-value'] as $secret) check_umbrella(!str_contains($diagnostic, $secret), 'Private data leaked in diagnostic');
+check_umbrella(str_contains(umbrellapag_rejection(400, []), 'não informou o motivo'), 'Missing gateway detail has no fallback');
 $sellerResponse = ['data' => ['legalName' => 'Test Seller', 'blocked' => false, 'permissions' => ['isPixAvailable' => true]]];
 check_umbrella(umbrellapag_verified_seller(200, $sellerResponse)['name'] === 'Test Seller', 'Valid seller rejected');
 check_umbrella(umbrellapag_verified_seller(201, $sellerResponse)['name'] === 'Test Seller', 'Successful seller response rejected');
@@ -170,4 +178,11 @@ $_GET = ['ref' => $testReference, 'token' => umbrellapag_callback_token($testRef
 $posted = ['objectId' => 'test-trx'];
 reply_umbrella(fn() => blackcat_test_webhook('umbrellapag'), 200);
 check_umbrella((int)$pdo->query('SELECT COUNT(*) FROM orders')->fetchColumn() === 2, 'Admin test created a product order');
+$rejectCreation = true;
+$posted = ['requestId' => '22222222-2222-4222-8222-222222222222', 'amount' => '1,00', 'acknowledgeRealCharge' => true,
+    'customer' => ['name' => 'Test Payer', 'email' => 'test@example.com', 'phone' => '11999999999', 'document' => '52998224725']];
+$failure = reply_umbrella(fn() => blackcat_test_create('umbrellapag'), 422);
+check_umbrella(str_contains($failure['error'], 'HTTP 422') && str_contains($failure['error'], 'customer.address'), 'Test rejection does not identify the validation error');
+check_umbrella(!str_contains($failure['error'], 'umbrella-test-only') && !str_contains($failure['error'], 'test@example.com') && !str_contains($failure['error'], 'Test Payer'), 'Test rejection leaked private values');
+check_umbrella($pdo->query("SELECT status FROM gateway_test_charges WHERE request_id='22222222-2222-4222-8222-222222222222'")->fetchColumn() === 'FAILED', 'Rejected test was not marked failed');
 echo "Umbrella Pix creation, activation, payload, webhook verification, legacy routing and admin test checks passed.\n";

@@ -45,10 +45,40 @@ function umbrellapag_payload(array $sale): array
     $sale['customer']['externalRef'] = $reference;
     $sale['customer']['document']['type'] = strtoupper($sale['customer']['document']['type']);
     $sale['paymentMethod'] = 'PIX';
+    foreach ($sale['items'] as $index => &$item) {
+        if (empty($item['externalRef'])) $item['externalRef'] = $reference . '-' . $index;
+    }
+    unset($item);
+    $ip = function_exists('visitor_ip') ? visitor_ip() : ($_SERVER['REMOTE_ADDR'] ?? '');
+    if (filter_var($ip, FILTER_VALIDATE_IP)) $sale['ip'] = $ip;
     $sale['installments'] = 1;
     $sale['traceable'] = true;
     $sale['metadata'] = json_encode(['orderRef' => $reference], JSON_THROW_ON_ERROR);
     return $sale;
+}
+
+function umbrellapag_rejection(int $status, array $response, array $privateValues = []): string
+{
+    $messages = [];
+    foreach ([$response['message'] ?? null, is_array($response['error'] ?? null) ? ($response['error']['message'] ?? null) : ($response['error'] ?? null), $response['errors'] ?? null] as $detail) {
+        if (is_string($detail)) $messages[] = $detail;
+        elseif (is_array($detail)) array_walk_recursive($detail, static function ($value) use (&$messages): void {
+            if (is_string($value) && count($messages) < 12) $messages[] = $value;
+        });
+    }
+    $message = implode(' | ', array_unique($messages));
+    // Only expose validation messages. Never return the original body or payer data.
+    array_walk_recursive($privateValues, static function ($value) use (&$message): void {
+        if (is_string($value) && strlen($value) >= 4) $message = str_ireplace($value, '[oculto]', $message);
+    });
+    $message = preg_replace('/https?:\/\/[^\s<>"\']+/i', '[endereço omitido]', $message);
+    $message = preg_replace('/[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}/i', '[e-mail omitido]', $message);
+    $message = preg_replace('/\b[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\b/i', '[identificador omitido]', $message);
+    $message = preg_replace('/\b\d[\d.\-\/ ()]{6,}\d\b/', '[número omitido]', $message);
+    $message = trim(preg_replace('/[\x00-\x1f\x7f]/', ' ', $message));
+    if ($message === '') $message = 'A API não informou o motivo. Solicite ao suporte da UmbrellaPag o motivo da recusa de criação do Pix.';
+    preg_match('/^.{0,800}/us', $message, $limited);
+    return 'UmbrellaPag recusou a cobrança (HTTP ' . $status . '): ' . ($limited[0] ?? 'Resposta de validação inválida. Consulte o suporte do gateway.');
 }
 
 function umbrellapag_confirmed_transaction(array $response, string $id, int $amount): array

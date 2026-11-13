@@ -110,7 +110,10 @@ function blackcat_test_create(string $provider = 'blackcat'): never
     }
     if ($status >= 400 && $status < 500) {
         db()->prepare("UPDATE gateway_test_charges SET status='FAILED',updated_at=? WHERE request_id=? AND status='CREATING'")->execute([time(), $id]);
-        respond(422, ['error' => 'O gateway recusou o teste. Confira os dados do pagador e a liberação da conta.', 'requestId' => $id, 'rejected' => true]);
+        $message = $provider === 'umbrellapag'
+            ? umbrellapag_rejection($status, $response, [$input['customer'], $key])
+            : 'O gateway recusou o teste. Confira os dados do pagador e a liberação da conta.';
+        respond(422, ['error' => $message, 'requestId' => $id, 'rejected' => true]);
     }
     $transaction = $response['data'] ?? [];
     $idField = $provider === 'umbrellapag' ? 'id' : 'transactionId';
