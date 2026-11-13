@@ -65,11 +65,11 @@ function blackcat_test_reply(array $row, int $httpStatus = 200): never
             'paymentData' => $payment['paymentData'] ?? [], 'invoiceUrl' => $payment['invoiceUrl'] ?? null]]);
 }
 
-function blackcat_test_create(): never
+function blackcat_test_create(string $provider = 'blackcat'): never
 {
     $session = require_admin(true, ['owner']);
     $input = blackcat_test_input(json_body(16384));
-    $key = config_value('blackcat_api_key');
+    $key = config_value($provider . '_api_key');
     if ($key === '') respond(503, ['error' => 'Configure a chave privada na Vercel e faça Redeploy antes de testar.', 'noChargeCreated' => true]);
     $hash = hash_hmac('sha256', json_encode([$input['amount'], $input['customer']]), config_value('app_secret'));
     $id = $input['requestId'];
@@ -80,11 +80,13 @@ function blackcat_test_create(): never
         blackcat_test_reply($previous);
     }
     if (rate_limited('gateway-test-create-' . $adminId, 3, 60)) respond(429, ['error' => 'Limite de três testes por minuto. Aguarde antes de gerar outro.']);
-    $reference = 'GT' . strtoupper(str_replace('-', '', $id));
+    $reference = ($provider === 'umbrellapag' ? 'GU' : 'GT') . strtoupper(str_replace('-', '', $id));
     $base = rtrim(config_value('public_base_url', 'https://vemariotica.online'), '/');
     if (parse_url($base, PHP_URL_SCHEME) !== 'https') throw new RuntimeException('Configure PUBLIC_BASE_URL com HTTPS.');
-    $callback = $base . '/api/webhooks/blackcat-test?ref=' . rawurlencode($reference)
-        . '&token=' . blackcat_callback_token($reference, config_value('app_secret'));
+    $callback = $base . '/api/webhooks/' . $provider . '-test?ref=' . rawurlencode($reference)
+        . '&token=' . ($provider === 'umbrellapag'
+            ? umbrellapag_callback_token($reference, config_value('app_secret'))
+            : blackcat_callback_token($reference, config_value('app_secret')));
     // Reserve before contacting the gateway. Repeating this request ID cannot
     // create another charge, including after a timeout or a double click.
     try {
@@ -99,23 +101,28 @@ function blackcat_test_create(): never
         'customer' => $input['customer'], 'externalRef' => $reference, 'pix' => ['expiresInDays' => 1],
         'metadata' => 'Teste administrativo. Sem pedido de produto ou movimentação de estoque.', 'postbackUrl' => $callback];
     try {
-        [$status, $response] = call_blackcat('/sales/create-sale', 'POST', $key, $payload);
+        [$status, $response] = $provider === 'umbrellapag'
+            ? call_umbrellapag('/user/transactions', 'POST', $key, umbrellapag_payload($payload))
+            : call_blackcat('/sales/create-sale', 'POST', $key, $payload);
     } catch (RuntimeException) {
         db()->prepare("UPDATE gateway_test_charges SET status='UNKNOWN',updated_at=? WHERE request_id=? AND status='CREATING'")->execute([time(), $id]);
         respond(503, ['error' => 'A resposta do gateway não chegou. Consulte este teste antes de gerar outra cobrança.', 'requestId' => $id, 'creationUncertain' => true]);
     }
     if ($status >= 400 && $status < 500) {
         db()->prepare("UPDATE gateway_test_charges SET status='FAILED',updated_at=? WHERE request_id=? AND status='CREATING'")->execute([time(), $id]);
-        respond(422, ['error' => 'A BlackCat recusou o teste. Confira os dados do pagador e a liberação da conta.', 'requestId' => $id, 'rejected' => true]);
+        respond(422, ['error' => 'O gateway recusou o teste. Confira os dados do pagador e a liberação da conta.', 'requestId' => $id, 'rejected' => true]);
     }
     $transaction = $response['data'] ?? [];
-    $transactionId = is_string($transaction['transactionId'] ?? null) ? $transaction['transactionId'] : '';
+    $idField = $provider === 'umbrellapag' ? 'id' : 'transactionId';
+    $transactionId = is_string($transaction[$idField] ?? null) ? $transaction[$idField] : '';
     if ($transactionId !== '' && strlen($transactionId) <= 120) {
         db()->prepare('UPDATE gateway_test_charges SET transaction_id=? WHERE request_id=?')->execute([$transactionId, $id]);
     }
     try {
         if (!in_array($status, [200, 201], true) || $transactionId === '' || strlen($transactionId) > 120) throw new RuntimeException('Invalid creation response');
-        $transaction = blackcat_confirmed_transaction($response, $transactionId, $input['amount']);
+        $transaction = $provider === 'umbrellapag'
+            ? umbrellapag_confirmed_transaction($response, $transactionId, $input['amount'])
+            : blackcat_confirmed_transaction($response, $transactionId, $input['amount']);
     } catch (RuntimeException) {
         db()->prepare("UPDATE gateway_test_charges SET status='UNKNOWN',updated_at=? WHERE request_id=? AND status='CREATING'")->execute([time(), $id]);
         respond(502, ['error' => 'Não foi possível confirmar o resultado da criação. Consulte o pagamento antes de tentar novamente.', 'requestId' => $id, 'creationUncertain' => true]);
@@ -147,23 +154,31 @@ function blackcat_test_status(string $id): never
     if (!$row) respond(404, ['error' => 'Teste não encontrado para esta conta.']);
     if (!$row['transaction_id']) blackcat_test_reply($row);
     if (rate_limited('gateway-test-status-' . (int)$session['admin_id'], 30, 60)) respond(429, ['error' => 'Aguarde antes de consultar novamente.']);
-    $key = config_value('blackcat_api_key');
+    $provider = str_starts_with($row['external_ref'], 'GU') ? 'umbrellapag' : 'blackcat';
+    $key = config_value($provider . '_api_key');
     if ($key === '') respond(503, ['error' => 'Configure a chave do gateway para consultar este teste.']);
     try {
-        [$status, $response] = call_blackcat('/sales/' . rawurlencode($row['transaction_id']) . '/status', 'GET', $key);
+        [$status, $response] = $provider === 'umbrellapag'
+            ? call_umbrellapag('/user/transactions/' . rawurlencode($row['transaction_id']), 'GET', $key)
+            : call_blackcat('/sales/' . rawurlencode($row['transaction_id']) . '/status', 'GET', $key);
         if ($status !== 200) throw new RuntimeException('Status unavailable');
-        $data = blackcat_confirmed_transaction($response, $row['transaction_id'], (int)$row['amount']);
+        $data = $provider === 'umbrellapag'
+            ? umbrellapag_confirmed_transaction($response, $row['transaction_id'], (int)$row['amount'])
+            : blackcat_confirmed_transaction($response, $row['transaction_id'], (int)$row['amount']);
         blackcat_test_update($row, $data['status']);
     } catch (RuntimeException) { respond(502, ['error' => 'Não foi possível confirmar o pagamento no gateway. Tente consultar novamente.']); }
     blackcat_test_reply(blackcat_test_find($id, (int)$session['admin_id']));
 }
 
-function blackcat_test_webhook(): never
+function blackcat_test_webhook(string $provider = 'blackcat'): never
 {
     $reference = is_string($_GET['ref'] ?? null) ? $_GET['ref'] : '';
     $token = is_string($_GET['token'] ?? null) ? $_GET['token'] : '';
-    if (!preg_match('/^GT[A-F0-9]{32}$/D', $reference) || strlen($token) !== 64
-        || !hash_equals(blackcat_callback_token($reference, config_value('app_secret')), $token)) respond(401, ['error' => 'Notificação não autorizada.']);
+    $prefix = $provider === 'umbrellapag' ? 'GU' : 'GT';
+    if (!preg_match('/^' . $prefix . '[A-F0-9]{32}$/D', $reference) || strlen($token) !== 64
+        || !hash_equals($provider === 'umbrellapag'
+            ? umbrellapag_callback_token($reference, config_value('app_secret'))
+            : blackcat_callback_token($reference, config_value('app_secret')), $token)) respond(401, ['error' => 'Notificação não autorizada.']);
     if (rate_limited('gateway-test-webhook-' . $reference, 30, 60)) respond(429, ['error' => 'Aguarde para reenviar.']);
     $posted = json_body(65536);
     $query = db()->prepare('SELECT * FROM gateway_test_charges WHERE external_ref=?');
@@ -171,12 +186,16 @@ function blackcat_test_webhook(): never
     $row = $query->fetch();
     if (!$row) respond(503, ['error' => 'Teste ainda não disponível. Reenvie.']);
     // Recover a creation whose HTTP response timed out, using its signed reference.
-    $id = $posted['transactionId'] ?? null;
+    $id = $posted[$provider === 'umbrellapag' ? 'objectId' : 'transactionId'] ?? null;
     if (!is_string($id) || $id === '' || strlen($id) > 120 || ($row['transaction_id'] && $row['transaction_id'] !== $id)) respond(400, ['error' => 'Transação inválida.']);
     try {
-        [$status, $response] = call_blackcat('/sales/' . rawurlencode($id) . '/status', 'GET', config_value('blackcat_api_key'), null, 7);
+        [$status, $response] = $provider === 'umbrellapag'
+            ? call_umbrellapag('/user/transactions/' . rawurlencode($id), 'GET', config_value('umbrellapag_api_key'), null, 7)
+            : call_blackcat('/sales/' . rawurlencode($id) . '/status', 'GET', config_value('blackcat_api_key'), null, 7);
         if ($status !== 200) throw new RuntimeException('Status unavailable');
-        $data = blackcat_confirmed_transaction($response, $id, (int)$row['amount']);
+        $data = $provider === 'umbrellapag'
+            ? umbrellapag_confirmed_transaction($response, $id, (int)$row['amount'])
+            : blackcat_confirmed_transaction($response, $id, (int)$row['amount']);
         if (!$row['transaction_id']) db()->prepare('UPDATE gateway_test_charges SET transaction_id=? WHERE request_id=? AND transaction_id IS NULL')->execute([$id, $row['request_id']]);
         blackcat_test_update($row, $data['status']);
     } catch (RuntimeException) { respond(503, ['error' => 'Não foi possível confirmar. Reenvie a notificação.']); }

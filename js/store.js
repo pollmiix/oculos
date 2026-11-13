@@ -637,7 +637,7 @@ function abrirCheckout() {
   $("#checkoutPaymentHelpLink").hidden = true;
   $("#checkoutForm").hidden = false;
   $(".checkout-summary-column").hidden = false;
-  $("#checkoutTitle").textContent = gatewaySelecionado ? "Checkout BlackCat" : "Checkout PIX";
+  $("#checkoutTitle").textContent = gatewaySelecionado ? "Checkout Pix" : "Checkout PIX";
   $("#checkoutEmail").required = gatewaySelecionado;
   $("#checkoutEmail").closest(".campo").querySelector("label span").textContent = gatewaySelecionado ? "(obrigatório para o gateway)" : "(opcional)";
   $("#cpf").required = gatewaySelecionado;
@@ -735,7 +735,7 @@ async function gerarPix() {
     return;
   }
   if (loja.pagamento.metodo === "gateway") {
-    gerarCobrancaBlackCat(dados);
+    gerarCobrancaGateway(dados);
     return;
   }
   if (!window.PixBR.validarChave(loja.pix.tipo, loja.pix.chave)) {
@@ -811,12 +811,12 @@ async function gerarPix() {
   $("#pixValor").textContent = dinheiro(totalCarrinho());
 }
 
-async function gerarCobrancaBlackCat(dados) {
+async function gerarCobrancaGateway(dados) {
   const botao = $("#btnPix");
   botao.disabled = true;
   botao.textContent = "Criando cobrança segura...";
   try {
-    const response = await fetch("/api/payments/blackcat", {
+    const response = await fetch("/api/payments/pix", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -841,7 +841,7 @@ async function gerarCobrancaBlackCat(dados) {
     });
     const result = await response.json();
     if (!response.ok || !result.success || !result.data) {
-      throw new Error(result.error || "O servidor não conseguiu criar a cobrança BlackCat.");
+      throw new Error(result.error || "O servidor não conseguiu criar a cobrança Pix.");
     }
     const charge = result.data;
     const payment = charge.paymentData || {};
@@ -853,7 +853,7 @@ async function gerarCobrancaBlackCat(dados) {
     pedidoAtual = {
       id: String(charge.transactionId),
       transactionId: String(charge.transactionId),
-      gateway: "blackcat",
+      gateway: result.provider || "blackcat",
       cliente: dados,
       itens: carrinho.map((item) => ({ ...item })),
       total,
@@ -866,9 +866,9 @@ async function gerarCobrancaBlackCat(dados) {
     $("#pixBox").classList.add("visivel");
     $("#checkoutForm").style.display = "none";
     $("#checkout").classList.add("pix-gerado");
-    $("#checkoutTitle").textContent = "Pagamento BlackCat";
+    $("#checkoutTitle").textContent = "Pagamento Pix";
     $(".pix-payment-heading h3").textContent = "Cobrança PIX pronta";
-    $(".pix-payment-heading p").textContent = "Escaneie o QR Code gerado pela BlackCat para pagar.";
+    $(".pix-payment-heading p").textContent = "Escaneie o QR Code do pagamento para pagar.";
     $("#btnPago").textContent = "Verificar pagamento";
     const imagemQr = $("#pixQr");
     const statusQr = $("#pixQrStatus");
@@ -882,20 +882,20 @@ async function gerarCobrancaBlackCat(dados) {
       const qr = window.qrcode(0, "M");
       qr.addData(pixPayload, "Byte");
       qr.make();
-      imagemQr.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(qr.createSvgTag(8, 4, "QR Code PIX BlackCat"))}`;
+      imagemQr.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(qr.createSvgTag(8, 4, "QR Code PIX"))}`;
       statusQr.textContent = "";
     } else {
       imagemQr.removeAttribute("src");
-      statusQr.textContent = "A BlackCat não forneceu a imagem do QR. Use o código Copia e Cola.";
+      statusQr.textContent = "Use o código Pix Copia e Cola para pagar.";
     }
     const detalhesPix = $(".pix-code-details");
     detalhesPix.hidden = !pixPayload;
     $("#btnCopiar").disabled = !pixPayload;
     const statusPagamento = $("#gatewayPaymentStatus");
     statusPagamento.hidden = false;
-    statusPagamento.textContent = "Aguardando confirmação do pagamento pela BlackCat.";
+    statusPagamento.textContent = "Aguardando confirmação do pagamento pelo banco.";
   } catch (erro) {
-    alert(`Não foi possível criar o PIX BlackCat: ${erro.message}`);
+    alert(`Não foi possível criar o PIX: ${erro.message}`);
   } finally {
     botao.disabled = false;
     botao.textContent = "Gerar cobrança PIX";
@@ -937,12 +937,12 @@ async function confirmarPagamento() {
     alert("Gere o PIX antes de confirmar.");
     return;
   }
-  if (pedidoAtual.gateway === "blackcat") {
+  if (["blackcat", "umbrellapag"].includes(pedidoAtual.gateway)) {
     const botao = $("#btnPago");
     const statusPagamento = $("#gatewayPaymentStatus");
     botao.disabled = true;
     statusPagamento.hidden = false;
-    statusPagamento.textContent = "Consultando a BlackCat...";
+    statusPagamento.textContent = "Consultando o pagamento...";
     try {
       const response = await fetch(`/api/payments/${encodeURIComponent(pedidoAtual.transactionId)}`, { cache: "no-store" });
       const result = await response.json();
@@ -1151,7 +1151,7 @@ async function iniciar() {
     $("#checkout").classList.remove("pix-gerado");
     $("#pixBox").classList.remove("visivel");
     $("#checkoutForm").style.display = "block";
-    $("#checkoutTitle").textContent = loja.pagamento.metodo === "gateway" ? "Checkout BlackCat" : "Checkout PIX";
+    $("#checkoutTitle").textContent = loja.pagamento.metodo === "gateway" ? "Checkout Pix" : "Checkout PIX";
   };
   $("#btnPix").onclick = () => {
     if ($("#checkoutForm").reportValidity()) gerarPix();

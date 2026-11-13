@@ -28,5 +28,6 @@ Não publique `.env`, `config.local.php`, bancos de dados ou a pasta `.data`. Os
 
 ## Documentação
 
+- [UmbrellaPag: configurar Pix na Vercel](UMBRELLAPAG-INTEGRACAO.md)
 - [Hospedagem PHP/MySQL](PHP-HOSTING.md)
 - [Administração e integração de pagamentos](BLACKCAT-INTEGRACAO.md)

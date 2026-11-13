@@ -174,7 +174,7 @@ function renderPainel() {
       </div>
 
       <div id="gatewaySettings" hidden>
-        <h2>Gateway BlackCat</h2>
+        <h2>Gateway UmbrellaPag</h2>
         <div class="gateway-connection-card">
           <p id="gatewayConnectionStatus" role="status">Conferindo a configuração do servidor...</p>
           <ul id="gatewayConnectionSteps"></ul>
@@ -184,9 +184,9 @@ function renderPainel() {
         <section class="gateway-charge-test" aria-labelledby="gatewayChargeTitle">
           <div class="gateway-charge-intro">
             <span class="gateway-charge-icon" aria-hidden="true">▦</span>
-            <div><h3 id="gatewayChargeTitle">Testar QR Code BlackCat</h3>
+            <div><h3 id="gatewayChargeTitle">Testar QR Code UmbrellaPag</h3>
               <p>Crie uma cobrança Pix para conferir o QR Code e a confirmação do pagamento.</p>
-              <p><strong>Este teste cria uma cobrança real na sua conta BlackCat.</strong> Se pagar o Pix, haverá movimentação financeira e poderão ser cobradas taxas. Use seus próprios dados.</p>
+              <p><strong>Este teste cria uma cobrança real na sua conta UmbrellaPag.</strong> Se pagar o Pix, haverá movimentação financeira e poderão ser cobradas taxas. Use seus próprios dados.</p>
               <p>O teste fica separado das vendas de produtos e não altera o estoque da loja.</p>
             </div>
           </div>
@@ -213,7 +213,7 @@ function renderPainel() {
           </div>
         </section>
         <div class="grid2">
-          <label>Provedor<input id="gateway_provedor" value="${esc(estado.pagamento.gateway.provedor || "BlackCat")}" readonly></label>
+          <label>Provedor<input id="gateway_provedor" value="${esc(estado.pagamento.gateway.provedor || "UmbrellaPag")}" readonly></label>
         </div>
       </div>
 
@@ -328,7 +328,8 @@ function renderPainel() {
   window.organizarPainel({ estado, role: adminRole, report: carregarRelatorioAdmin, request: adminFetch, money: dinheiroAdmin, escape: esc, changeOrders: alterarPedidosPainel, changeVisitors: alterarVisitaPainel });
   if (adminRole === "owner") window.iniciarConexaoGateway(adminCsrfToken, () => {
     estado.pagamento.metodo = "gateway";
-    estado.pagamento.gateway.provedor = "BlackCat";
+    estado.pagamento.gateway.provedor = "UmbrellaPag";
+    document.getElementById("gateway_provedor").value = "UmbrellaPag";
     document.querySelector('input[name="metodoPagamento"][value="gateway"]').checked = true;
     atualizarConfiguracaoPagamento();
     document.getElementById("adminSaveHint").textContent = "Gateway ativado no servidor";
@@ -673,7 +674,7 @@ async function carregarRelatorioAdmin(view) {
     if (view === "orders") {
       const { orders } = await adminFetch("/api/admin/orders");
       const paymentLabels = { pending: "Aguardando pagamento", reported: "Pagamento informado", paid: "Pago", cancelled: "Cancelado", refunded: "Reembolsado" };
-      const paymentMethods = { pix: "PIX", pix_manual: "PIX manual", blackcat: "BlackCat" };
+      const paymentMethods = { pix: "PIX", pix_manual: "PIX manual", blackcat: "BlackCat", umbrellapag: "UmbrellaPag" };
       target.innerHTML = orders.length ? `<div class="order-list">${orders.map((o) => {
         const customer = o.customer || {};
         const shipping = customer.shipping || {};

@@ -6,11 +6,11 @@ window.iniciarTesteGateway = function (csrf) {
   const fields = $("gatewayChargeFields");
   const message = $("gatewayChargeMessage");
   const result = $("gatewayChargeResult");
-  const storageKey = "vemari_gateway_test_request";
+  const storageKey = "vemari_umbrellapag_test_request";
   let requestId = null, timer, pendingRequest = false;
   window.encerrarTesteGateway = () => { clearTimeout(timer); controller.abort(); };
   const money = value => (value / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-  const labels = { CREATING: "Criação em processamento", UNKNOWN: "Aguardando resposta do gateway", PENDING: "Aguardando pagamento", PAID: "Pagamento confirmado pela BlackCat", CANCELLED: "Cobrança cancelada ou expirada", REFUNDED: "Pagamento estornado", FAILED: "Cobrança recusada" };
+  const labels = { CREATING: "Criação em processamento", UNKNOWN: "Aguardando resposta do gateway", PENDING: "Aguardando pagamento", PAID: "Pagamento confirmado pela UmbrellaPag", CANCELLED: "Cobrança cancelada ou expirada", REFUNDED: "Pagamento estornado", FAILED: "Cobrança recusada" };
   const terminal = state => ["PAID", "CANCELLED", "REFUNDED", "FAILED"].includes(state);
   function remember(id) {
     requestId = id;
@@ -74,7 +74,7 @@ window.iniciarTesteGateway = function (csrf) {
   async function check(manual = true) {
     if (!requestId || pendingRequest || controller.signal.aborted) return;
     pendingRequest = true; $("checkGatewayTest").disabled = true;
-    if (manual) message.textContent = "Conferindo o pagamento diretamente na BlackCat...";
+    if (manual) message.textContent = "Conferindo o pagamento diretamente na UmbrellaPag...";
     try {
       const data = await read(await fetch(`/api/admin/gateway/charges/${encodeURIComponent(requestId)}`, { cache: "no-store", signal: controller.signal }));
       render(data);
@@ -82,7 +82,7 @@ window.iniciarTesteGateway = function (csrf) {
         ? "A criação ainda não foi confirmada. Consulte este teste antes de gerar outra cobrança."
         : "Situação conferida no servidor. Este teste não entra nas vendas de produtos.";
       if (data.data.status === "PENDING" && !$("gatewayChargeCode").value && $("gatewayChargeQr").hidden && $("gatewayChargeInvoice").hidden) {
-        message.textContent = "A cobrança foi identificada, mas os dados do QR Code não chegaram. Localize o teste na BlackCat pelo ID antes de gerar outra cobrança.";
+        message.textContent = "A cobrança foi identificada, mas os dados do QR Code não chegaram. Localize o teste na UmbrellaPag pelo ID antes de gerar outra cobrança.";
       }
     } catch (error) {
       if (error.name === "AbortError") return;
@@ -101,7 +101,7 @@ window.iniciarTesteGateway = function (csrf) {
     const payload = { requestId, amount: $("gatewayTestAmount").value.trim(), acknowledgeRealCharge: $("gatewayTestConsent").checked,
       customer: { name: $("gatewayTestName").value.trim(), email: $("gatewayTestEmail").value.trim(), phone: $("gatewayTestPhone").value.trim(), document: $("gatewayTestDocument").value.trim() } };
     pendingRequest = true; fields.disabled = true; result.hidden = true;
-    message.textContent = "Gerando uma cobrança real na BlackCat. Aguarde...";
+    message.textContent = "Gerando uma cobrança real na UmbrellaPag. Aguarde...";
     try {
       const data = await read(await fetch("/api/admin/gateway/charges", { method: "POST", headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf }, body: JSON.stringify(payload), signal: controller.signal }));
       render(data);

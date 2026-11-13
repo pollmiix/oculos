@@ -1,5 +1,7 @@
 # PHP e MySQL na Vercel
 
+Para trocar o Pix da BlackCat pela UmbrellaPag, siga [UMBRELLAPAG-INTEGRACAO.md](UMBRELLAPAG-INTEGRACAO.md). O painel Gateway desta versão configura a UmbrellaPag; as instruções BlackCat abaixo ficam como referência da integração anterior.
+
 O repositório inclui `vercel.json` e `api/index.php` para executar a API com o runtime comunitário `vercel-php@0.9.0`. A tela do painel está diretamente em `/admin.php`; o antigo endereço `/admin.html` redireciona para ela.
 
 ## 1. Banco de dados
@@ -26,6 +28,7 @@ Na Vercel, abra o projeto da loja e vá a **Settings → Environment Variables**
 | `PUBLIC_BASE_URL` | `https://vemariotica.online` |
 | `ANALYTICS_RETENTION_DAYS` | `90` |
 | `BLACKCAT_API_KEY` | Opcional: chave privada do gateway, somente se for usá-lo |
+| `UMBRELLAPAG_API_KEY` | Chave privada da UmbrellaPag para receber Pix; configure em Production e faça Redeploy |
 
 Não coloque esses valores no GitHub, em arquivos JavaScript ou em mensagens públicas. Não existe senha administrativa padrão. A conta será criada no primeiro acesso à API, se o banco ainda não tiver administradores.
 

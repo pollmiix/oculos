@@ -23,6 +23,7 @@ function store_config(): array
         'db_ssl_ca' => 'DB_SSL_CA', 'admin_username' => 'ADMIN_USERNAME',
         'admin_password' => 'ADMIN_PASSWORD', 'app_secret' => 'APP_SECRET',
         'blackcat_api_key' => 'BLACKCAT_API_KEY',
+        'umbrellapag_api_key' => 'UMBRELLAPAG_API_KEY',
         'analytics_retention_days' => 'ANALYTICS_RETENTION_DAYS',
         'public_base_url' => 'PUBLIC_BASE_URL',
     ];

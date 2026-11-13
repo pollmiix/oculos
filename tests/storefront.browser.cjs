@@ -60,6 +60,40 @@ async function main() {
   }
   const cart = [{ id: product.id, qtd: 1, preco: 90, nome: product.nome, imagem: product.imagem }];
   try {
+    await check('Umbrella Pix stays pending until the server confirms payment', { mineironet_carrinho: JSON.stringify(cart) }, async (page, errors) => {
+      let status = 'PENDING';
+      let manualReports = 0;
+      await page.route('**/api/store', route => route.fulfill({ json: {
+        produtos: products, categorias: ['Todos', product.categoria], loja: {},
+        pagamento: { metodo: 'gateway', gateway: { provedor: 'UmbrellaPag' } }
+      } }));
+      await page.route('**/api/health', route => route.fulfill({ json: { ok: true, paymentConfigured: true } }));
+      await page.route('**/api/orders/manual/**', route => { manualReports++; return route.fulfill({ json: { success: true } }); });
+      await page.route('**/api/payments/pix', async route => {
+        const body = route.request().postDataJSON();
+        assert.deepEqual(body.items, [{ id: product.id, quantity: 1 }]);
+        assert.equal(body.customer.name, 'Test Payer');
+        return route.fulfill({ status: 201, json: { success: true, provider: 'umbrellapag', data: {
+          transactionId: 'umbrella-trx', amount: 9000, status: 'PENDING', paymentData: { copyPaste: '000201TESTPIX' }
+        } } });
+      });
+      await page.route('**/api/payments/umbrella-trx', route => route.fulfill({ json: {
+        success: true, data: { transactionId: 'umbrella-trx', amount: 9000, status }
+      } }));
+      await page.goto(base + '/index.html?checkout=1');
+      await page.waitForSelector('#checkout.aberto');
+      await page.evaluate(() => gerarCobrancaGateway({ nome: 'Test Payer', email: 'test@example.com', telefone: '11999999999',
+        cpf: '52998224725', rua: 'Test Street', numero: '10', obs: '', bairro: 'Centro', cidade: 'City', uf: 'SP', cep: '01001000' }));
+      assert.equal(await page.locator('#pixCode').textContent(), '000201TESTPIX');
+      await page.locator('#btnPago').click();
+      await page.waitForFunction(() => document.querySelector('#gatewayPaymentStatus').textContent.includes('pendente'));
+      assert.equal(await page.locator('#sucesso').isVisible(), false);
+      status = 'PAID';
+      await page.locator('#btnPago').click();
+      await page.waitForSelector('#sucesso.visivel');
+      assert.equal(manualReports, 0);
+      assert.deepEqual(errors, []);
+    });
     for (const selector of ['.card-img', '.card h3 a', '[data-details]']) {
       await check('Catalog link opens the selected product: ' + selector, {}, async (page, errors) => {
         const selected = { ...product, id: 'second-glasses', nome: 'Segundo modelo' };
@@ -185,7 +219,8 @@ async function main() {
       await page.waitForFunction(() => document.querySelector('#btnCheckout').disabled);
       const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('mineironet_carrinho')));
       assert.equal(saved.length, 1);
-      assert.match(await page.locator('#grid').textContent(), /carregar|indisponível/i);
+      assert.match(await page.locator('#grid').textContent(), /carregar|indisponível|Estoque a confirmar/i);
+      assert.equal(await page.locator('[data-add]:enabled').count(), 0);
       assert.deepEqual(errors, []);
     });
     await check('Back from PIX hides the previous payment code', { mineironet_carrinho: JSON.stringify(cart) }, async page => {

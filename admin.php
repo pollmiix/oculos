@@ -23,8 +23,8 @@ header('Content-Type: text/html; charset=utf-8');
   <script src="js/pix.js"></script>
   <script src="js/admin-visitors.js?v=20261030fixes"></script>
   <script src="js/admin-layout.js?v=20261030visits"></script>
-  <script src="js/gateway-admin.js?v=20261026qrtest"></script>
-  <script src="js/gateway-test.js?v=20261026qrtest"></script>
-  <script src="js/admin.js?v=20261030fixes"></script>
+  <script src="js/gateway-admin.js?v=20261112umbrella"></script>
+  <script src="js/gateway-test.js?v=20261112umbrella"></script>
+  <script src="js/admin.js?v=20261112umbrella"></script>
 </body>
 </html>
