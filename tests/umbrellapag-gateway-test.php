@@ -75,7 +75,7 @@ function call_umbrellapag(string $path, string $method, string $key, ?array $pay
     $amount = $method === 'POST' ? $payload['amount'] : ($id === 'test-trx' ? 100 : 12345);
     return [$method === 'POST' ? 201 : 200, ['status' => 200, 'error' => null, 'data' => [
         'id' => $id, 'amount' => $amount + ($GLOBALS['wrongAmount'] ? 1 : 0), 'currency' => 'BRL',
-        'paymentMethod' => 'PIX', 'status' => $GLOBALS['remoteState'], 'pix' => ['qrcode' => '000201TESTPIX']]]];
+        'paymentMethod' => 'PIX', 'status' => $GLOBALS['remoteState'], 'refusedReason' => $GLOBALS['remoteState'] === 'REFUSED' ? '{"code":"TEST_PROVIDER_REFUSAL"}' : null, 'pix' => ['qrcode' => '000201TESTPIX']]]];
 }
 function check_umbrella(bool $ok, string $message): void { if (!$ok) throw new RuntimeException($message); }
 function reply_umbrella(callable $fn, int $expected): array {
@@ -89,6 +89,19 @@ $diagnostic = umbrellapag_rejection(422, ['message' => ['customer.address is req
 check_umbrella(str_contains($diagnostic, 'HTTP 422') && str_contains($diagnostic, 'customer.address') && str_contains($diagnostic, 'amount must be at least 500'), 'Gateway validation details were lost');
 foreach (['Payer Name', 'payer@example.com', '123.456.789-00', 'secret-test-value'] as $secret) check_umbrella(!str_contains($diagnostic, $secret), 'Private data leaked in diagnostic');
 check_umbrella(str_contains(umbrellapag_rejection(400, []), 'não informou o motivo'), 'Missing gateway detail has no fallback');
+$internalReason = umbrellapag_rejection(400, ['message' => 'Transacao recusada, consulte o motivo.', 'data' => ['refusedReason' => '{"code":"ERR_INVALID_ARG_TYPE","message":"Detailed provider reason"}']]);
+check_umbrella(str_contains($internalReason, 'ERR_INVALID_ARG_TYPE') && str_contains($internalReason, 'Detailed provider reason'), 'Nested gateway refusal reason was dropped');
+$owner = false;
+reply_umbrella(fn() => umbrellapag_inspect_transaction('existing-trx'), 403);
+$owner = true;
+reply_umbrella(fn() => umbrellapag_inspect_transaction('invalid/id'), 400);
+$remoteState = 'REFUSED';
+$before = count($updates);
+$inspection = reply_umbrella(fn() => umbrellapag_inspect_transaction('existing-trx'), 200);
+check_umbrella($inspection['data']['status'] === 'REFUSED' && str_contains($inspection['data']['reason'], 'TEST_PROVIDER_REFUSAL'), 'Read-only inspection dropped refusal detail');
+check_umbrella(count($updates) === $before && (int)$pdo->query('SELECT COUNT(*) FROM orders')->fetchColumn() === 0, 'Inspection changed orders');
+check_umbrella($requests[array_key_last($requests)][2] === 'GET', 'Inspection created a charge');
+$remoteState = 'WAITING_PAYMENT';
 $sellerResponse = ['data' => ['legalName' => 'Test Seller', 'blocked' => false, 'permissions' => ['isPixAvailable' => true]]];
 check_umbrella(umbrellapag_verified_seller(200, $sellerResponse)['name'] === 'Test Seller', 'Valid seller rejected');
 check_umbrella(umbrellapag_verified_seller(201, $sellerResponse)['name'] === 'Test Seller', 'Successful seller response rejected');

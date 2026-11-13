@@ -772,6 +772,7 @@ function route_request(): void
     if ($method === 'GET' && $path === '/api/admin/gateway/status') umbrellapag_admin_status();
     if ($method === 'POST' && $path === '/api/admin/gateway/test') umbrellapag_admin_connect(false);
     if ($method === 'POST' && $path === '/api/admin/gateway/activate') umbrellapag_admin_connect(true);
+    if ($method === 'GET' && preg_match('#^/api/admin/gateway/transactions/([A-Za-z0-9_-]{1,120})$#D', $path, $inspectionMatch)) umbrellapag_inspect_transaction($inspectionMatch[1]);
     if ($method === 'POST' && $path === '/api/admin/gateway/charges') blackcat_test_create('umbrellapag');
     if ($method === 'GET' && preg_match('#^/api/admin/gateway/charges/([a-f0-9-]{36})$#D', $path, $testMatch)) blackcat_test_status($testMatch[1]);
     if ($method === 'POST' && $path === '/api/webhooks/blackcat') blackcat_webhook();

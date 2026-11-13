@@ -180,6 +180,14 @@ function renderPainel() {
           <ul id="gatewayConnectionSteps"></ul>
           <div class="gateway-connection-actions"><button class="btn btn-ghost" id="testGateway" type="button">Verificar conexão</button><button class="btn btn-verde" id="activateGateway" type="button" disabled>Ativar Pix automático</button></div>
           <p id="gatewayConnectionResult" role="status"></p>
+          <div class="gateway-diagnostic">
+            <h3>Consultar motivo de uma recusa</h3>
+            <p>Copie o ID completo da transação no painel da UmbrellaPag. Esta consulta não gera outra cobrança.</p>
+            <label for="gatewayInspectId">ID da transação recusada</label>
+            <input id="gatewayInspectId" maxlength="120" autocomplete="off" placeholder="Cole o ID completo da transação">
+            <button class="btn btn-ghost" id="gatewayInspectButton" type="button">Consultar motivo</button>
+            <p id="gatewayInspectResult" role="status"></p>
+          </div>
         </div>
         <section class="gateway-charge-test" aria-labelledby="gatewayChargeTitle">
           <div class="gateway-charge-intro">

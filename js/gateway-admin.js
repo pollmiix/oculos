@@ -45,5 +45,22 @@ window.iniciarConexaoGateway = function (csrf, onActivated) {
   }
   test.onclick = () => run("test");
   activate.onclick = () => run("activate");
+  const inspect = document.getElementById("gatewayInspectButton");
+  inspect.onclick = async () => {
+    const output = document.getElementById("gatewayInspectResult");
+    const id = document.getElementById("gatewayInspectId").value.trim();
+    if (!/^[A-Za-z0-9_-]{1,120}$/.test(id)) {
+      output.textContent = "Copie o ID completo da transação no painel da UmbrellaPag.";
+      return;
+    }
+    inspect.disabled = true;
+    output.textContent = "Consultando a transação, sem gerar cobrança...";
+    try {
+      const { data } = await read(await fetch(`/api/admin/gateway/transactions/${encodeURIComponent(id)}`, { cache: "no-store" }));
+      const amount = (data.amount / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+      output.textContent = `Situação: ${data.status}. Valor: ${amount}. Motivo: ${data.reason}`;
+    } catch (error) { output.textContent = error.message; }
+    finally { inspect.disabled = false; }
+  };
   refresh().catch(error => { status.textContent = error.message; });
 };

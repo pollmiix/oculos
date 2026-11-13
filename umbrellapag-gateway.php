@@ -57,10 +57,17 @@ function umbrellapag_payload(array $sale): array
     return $sale;
 }
 
-function umbrellapag_rejection(int $status, array $response, array $privateValues = []): string
+function umbrellapag_rejection(int $status, array $response, array $privateValues = [], bool $withPrefix = true): string
 {
     $messages = [];
-    foreach ([$response['message'] ?? null, is_array($response['error'] ?? null) ? ($response['error']['message'] ?? null) : ($response['error'] ?? null), $response['errors'] ?? null] as $detail) {
+    $transaction = is_array($response['data'] ?? null) ? $response['data'] : [];
+    $reasons = [$transaction['refusedReason'] ?? null, $transaction['rejectionReason'] ?? null,
+        $response['refusedReason'] ?? null, $response['rejectionReason'] ?? null];
+    foreach ([...$reasons, $response['message'] ?? null, $response['error'] ?? null, $response['errors'] ?? null] as $detail) {
+        if (is_string($detail)) {
+            $decoded = json_decode($detail, true);
+            if (is_array($decoded)) $detail = $decoded;
+        }
         if (is_string($detail)) $messages[] = $detail;
         elseif (is_array($detail)) array_walk_recursive($detail, static function ($value) use (&$messages): void {
             if (is_string($value) && count($messages) < 12) $messages[] = $value;
@@ -78,7 +85,31 @@ function umbrellapag_rejection(int $status, array $response, array $privateValue
     $message = trim(preg_replace('/[\x00-\x1f\x7f]/', ' ', $message));
     if ($message === '') $message = 'A API não informou o motivo. Solicite ao suporte da UmbrellaPag o motivo da recusa de criação do Pix.';
     preg_match('/^.{0,800}/us', $message, $limited);
-    return 'UmbrellaPag recusou a cobrança (HTTP ' . $status . '): ' . ($limited[0] ?? 'Resposta de validação inválida. Consulte o suporte do gateway.');
+    return ($withPrefix ? 'UmbrellaPag recusou a cobrança (HTTP ' . $status . '): ' : '')
+        . ($limited[0] ?? 'Resposta de validação inválida. Consulte o suporte do gateway.');
+}
+
+function umbrellapag_inspect_transaction(string $id): never
+{
+    $session = require_admin(false, ['owner']);
+    if (!preg_match('/^[A-Za-z0-9_-]{1,120}$/D', $id)) respond(400, ['error' => 'Copie o ID completo da transação no painel da UmbrellaPag.']);
+    if (rate_limited('umbrellapag-inspect-' . (int)$session['admin_id'], 12, 60)) respond(429, ['error' => 'Aguarde um minuto antes de consultar novamente.']);
+    $key = config_value('umbrellapag_api_key');
+    try {
+        [$status, $response] = call_umbrellapag('/user/transactions/' . rawurlencode($id), 'GET', $key);
+    } catch (RuntimeException $error) { respond(502, ['error' => 'Não foi possível consultar a transação na UmbrellaPag. Tente novamente mais tarde.']); }
+    if ($status !== 200) respond(422, ['error' => umbrellapag_rejection($status, $response, [$key])]);
+    $transaction = $response['data'] ?? null;
+    if (!is_array($transaction) || !empty($response['error']) || ($transaction['id'] ?? null) !== $id
+        || !is_int($transaction['amount'] ?? null) || !is_string($transaction['status'] ?? null)
+        || ($transaction['paymentMethod'] ?? null) !== 'PIX') {
+        respond(502, ['error' => 'A UmbrellaPag não retornou os dados esperados desta transação Pix.']);
+    }
+    $reason = ['data' => array_intersect_key($transaction, array_flip(['refusedReason', 'rejectionReason']))];
+    // Read only: never creates a charge or changes orders/payment states.
+    respond(200, ['success' => true, 'data' => ['transactionId' => $id,
+        'status' => $transaction['status'], 'amount' => $transaction['amount'],
+        'reason' => umbrellapag_rejection(200, $reason, [$transaction['customer'] ?? [], $key], false)]]);
 }
 
 function umbrellapag_confirmed_transaction(array $response, string $id, int $amount): array
