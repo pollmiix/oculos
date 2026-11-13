@@ -3492,6 +3492,12 @@ body.produto-page { background:#fff; color:#111; }
 .storefront-page .checkout-summary-column .pix-confirm-note { color:#555; }
 .storefront-page .checkout-summary-column .sucesso { border-color:#ddd; border-radius:5px; background:#fff; }
 .storefront-page .checkout.gateway-pendente { background:#fff; color:#111; }
+.storefront-page .gateway-pending { border-color:#dedede; background:#f8f8f8; color:#111; }
+.storefront-page .gateway-pending h3 { color:#111; }
+.storefront-page .gateway-pending p { color:#444; }
+.storefront-page .gateway-pending .btn { border-color:#111; background:#111; color:#fff; }
+.storefront-page .gateway-pending .btn:hover { background:#333; color:#fff; }
+.storefront-page .gateway-pending .pix-back-button { color:#111; }
 @media(max-width:680px) {
  .produto-page .product-purchase-actions { gap:8px; }
  .storefront-page .drawer-foot { padding-bottom:max(14px,env(safe-area-inset-bottom)); }
