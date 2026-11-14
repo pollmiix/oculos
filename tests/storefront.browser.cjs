@@ -60,12 +60,12 @@ async function main() {
   }
   const cart = [{ id: product.id, qtd: 1, preco: 90, nome: product.nome, imagem: product.imagem }];
   try {
-    await check('Umbrella Pix stays pending until the server confirms payment', { mineironet_carrinho: JSON.stringify(cart) }, async (page, errors) => {
+    await check('BlackCat Pix stays pending until the server confirms payment', { mineironet_carrinho: JSON.stringify(cart) }, async (page, errors) => {
       let status = 'PENDING';
       let manualReports = 0;
       await page.route('**/api/store', route => route.fulfill({ json: {
         produtos: products, categorias: ['Todos', product.categoria], loja: {},
-        pagamento: { metodo: 'gateway', gateway: { provedor: 'UmbrellaPag' } }
+        pagamento: { metodo: 'gateway', gateway: { provedor: 'BlackCat' } }
       } }));
       await page.route('**/api/health', route => route.fulfill({ json: { ok: true, paymentConfigured: true } }));
       await page.route('**/api/orders/manual/**', route => { manualReports++; return route.fulfill({ json: { success: true } }); });
@@ -73,12 +73,12 @@ async function main() {
         const body = route.request().postDataJSON();
         assert.deepEqual(body.items, [{ id: product.id, quantity: 1 }]);
         assert.equal(body.customer.name, 'Test Payer');
-        return route.fulfill({ status: 201, json: { success: true, provider: 'umbrellapag', data: {
-          transactionId: 'umbrella-trx', amount: 9000, status: 'PENDING', paymentData: { copyPaste: '000201TESTPIX' }
+        return route.fulfill({ status: 201, json: { success: true, provider: 'blackcat', data: {
+          transactionId: 'blackcat-trx', amount: 9000, status: 'PENDING', paymentData: { copyPaste: '000201TESTPIX' }
         } } });
       });
-      await page.route('**/api/payments/umbrella-trx', route => route.fulfill({ json: {
-        success: true, data: { transactionId: 'umbrella-trx', amount: 9000, status }
+      await page.route('**/api/payments/blackcat-trx', route => route.fulfill({ json: {
+        success: true, data: { transactionId: 'blackcat-trx', amount: 9000, status }
       } }));
       await page.goto(base + '/index.html?checkout=1');
       await page.waitForSelector('#checkout.aberto');

@@ -1,6 +1,6 @@
 # PHP e MySQL na Vercel
 
-Para configurar o Pix automático UmbrellaPag, siga [UMBRELLAPAG-INTEGRACAO.md](UMBRELLAPAG-INTEGRACAO.md).
+Para configurar o Pix automático BlackCat, siga [BLACKCAT-INTEGRACAO.md](BLACKCAT-INTEGRACAO.md).
 
 O repositório inclui `vercel.json` e `api/index.php` para executar a API com o runtime comunitário `vercel-php@0.9.0`. A tela do painel está diretamente em `/admin.php`; o antigo endereço `/admin.html` redireciona para ela.
 
@@ -27,7 +27,7 @@ Na Vercel, abra o projeto da loja e vá a **Settings → Environment Variables**
 | `APP_SECRET` | Segredo aleatório com pelo menos 32 caracteres |
 | `PUBLIC_BASE_URL` | `https://vemariotica.online` |
 | `ANALYTICS_RETENTION_DAYS` | `90` |
-| `UMBRELLAPAG_API_KEY` | Chave privada da UmbrellaPag para receber Pix; configure em Production e faça Redeploy |
+| `BLACKCAT_API_KEY` | Chave privada da BlackCat para receber Pix; configure em Production e faça Redeploy |
 
 Não coloque esses valores no GitHub, em arquivos JavaScript ou em mensagens públicas. Não existe senha administrativa padrão. A conta será criada no primeiro acesso à API, se o banco ainda não tiver administradores.
 
@@ -44,4 +44,4 @@ Mudar `ADMIN_PASSWORD` nas variáveis depois de criar a conta não altera a senh
 
 ## 4. Pix automatico
 
-Siga [UMBRELLAPAG-INTEGRACAO.md](UMBRELLAPAG-INTEGRACAO.md) para configurar a chave privada, verificar a conta, testar um pagamento e ativar a UmbrellaPag. Este e o unico gateway desta versao. A integracao anterior foi removida; o historico de pedidos foi preservado.
+Siga [BLACKCAT-INTEGRACAO.md](BLACKCAT-INTEGRACAO.md) para configurar a chave privada, verificar a conta, testar um pagamento e ativar a BlackCat. Este e o unico gateway desta versao. A integracao anterior foi removida; o historico de pedidos foi preservado.

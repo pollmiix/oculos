@@ -174,27 +174,19 @@ function renderPainel() {
       </div>
 
       <div id="gatewaySettings" hidden>
-        <h2>Gateway UmbrellaPag</h2>
+        <h2>Gateway BlackCat</h2>
         <div class="gateway-connection-card">
           <p id="gatewayConnectionStatus" role="status">Conferindo a configuração do servidor...</p>
           <ul id="gatewayConnectionSteps"></ul>
           <div class="gateway-connection-actions"><button class="btn btn-ghost" id="testGateway" type="button">Verificar conexão</button><button class="btn btn-verde" id="activateGateway" type="button" disabled>Ativar Pix automático</button></div>
           <p id="gatewayConnectionResult" role="status"></p>
-          <div class="gateway-diagnostic">
-            <h3>Consultar motivo de uma recusa</h3>
-            <p>Copie o ID completo da transação no painel da UmbrellaPag. Esta consulta não gera outra cobrança.</p>
-            <label for="gatewayInspectId">ID da transação recusada</label>
-            <input id="gatewayInspectId" maxlength="120" autocomplete="off" placeholder="Cole o ID completo da transação">
-            <button class="btn btn-ghost" id="gatewayInspectButton" type="button">Consultar motivo</button>
-            <p id="gatewayInspectResult" role="status"></p>
-          </div>
         </div>
         <section class="gateway-charge-test" aria-labelledby="gatewayChargeTitle">
           <div class="gateway-charge-intro">
             <span class="gateway-charge-icon" aria-hidden="true">▦</span>
-            <div><h3 id="gatewayChargeTitle">Testar QR Code UmbrellaPag</h3>
+            <div><h3 id="gatewayChargeTitle">Testar QR Code BlackCat</h3>
               <p>Crie uma cobrança Pix para conferir o QR Code e a confirmação do pagamento.</p>
-              <p><strong>Este teste cria uma cobrança real na sua conta UmbrellaPag.</strong> Se pagar o Pix, haverá movimentação financeira e poderão ser cobradas taxas. Use seus próprios dados.</p>
+              <p><strong>Este teste cria uma cobrança real na sua conta BlackCat.</strong> Se pagar o Pix, haverá movimentação financeira e poderão ser cobradas taxas. Use seus próprios dados.</p>
               <p>O teste fica separado das vendas de produtos e não altera o estoque da loja.</p>
             </div>
           </div>
@@ -221,7 +213,7 @@ function renderPainel() {
           </div>
         </section>
         <div class="grid2">
-          <label>Provedor do checkout<input id="gateway_provedor" value="UmbrellaPag" readonly></label>
+          <label>Provedor<input id="gateway_provedor" value="${esc(estado.pagamento.gateway.provedor || "BlackCat")}" readonly></label>
         </div>
       </div>
 
@@ -336,9 +328,9 @@ function renderPainel() {
   window.organizarPainel({ estado, role: adminRole, report: carregarRelatorioAdmin, request: adminFetch, money: dinheiroAdmin, escape: esc, changeOrders: alterarPedidosPainel, changeVisitors: alterarVisitaPainel });
   if (adminRole === "owner") window.iniciarConexaoGateway(adminCsrfToken, () => {
     estado.pagamento.metodo = "gateway";
-    estado.pagamento.gateway.provedor = "UmbrellaPag";
+    estado.pagamento.gateway.provedor = "BlackCat";
     estado.pagamento.gateway.ativo = true;
-    document.getElementById("gateway_provedor").value = "UmbrellaPag";
+    document.getElementById("gateway_provedor").value = "BlackCat";
     document.querySelector('input[name="metodoPagamento"][value="gateway"]').checked = true;
     atualizarConfiguracaoPagamento();
     document.getElementById("adminSaveHint").textContent = "Gateway ativado no servidor";
@@ -683,7 +675,7 @@ async function carregarRelatorioAdmin(view) {
     if (view === "orders") {
       const { orders } = await adminFetch("/api/admin/orders");
       const paymentLabels = { pending: "Aguardando pagamento", reported: "Pagamento informado", paid: "Pago", cancelled: "Cancelado", refunded: "Reembolsado" };
-      const paymentMethods = { pix: "PIX", pix_manual: "PIX manual", umbrellapag: "UmbrellaPag" };
+      const paymentMethods = { pix: "PIX", pix_manual: "PIX manual", blackcat: "BlackCat", umbrellapag: "UmbrellaPag (historico)" };
       target.innerHTML = orders.length ? `<div class="order-list">${orders.map((o) => {
         const customer = o.customer || {};
         const shipping = customer.shipping || {};
@@ -725,7 +717,7 @@ async function carregarRelatorioAdmin(view) {
             </div>
             ${pixPayload ? `<div class="order-pix"><h3>PIX gerado · ${dinheiroAdmin(o.total_cents)}</h3><div class="order-pix-content">${pixQrMarkup}<label>Código Copia e Cola<textarea readonly rows="4">${esc(pixPayload)}</textarea></label></div><button class="btn btn-ghost" data-copy-pix type="button">Copiar código PIX</button></div>` : ""}
             <div class="order-actions"><label>Status do pagamento<select data-order-status="${esc(o.id)}">${["pending", "reported", "paid", "cancelled", "refunded"].map((value) => `<option value="${value}" ${o.payment_status === value ? "selected" : ""}>${esc(paymentLabels[value])}</option>`).join("")}</select></label>
-              <p>Forma de pagamento: ${esc(paymentMethods[o.payment_method] || "Gateway anterior")}</p>
+              <p>Forma de pagamento: ${esc(paymentMethods[o.payment_method] || o.payment_method || "Não informado")}</p>
               <button class="btn btn-ghost" data-save-order="${esc(o.id)}" type="button">Atualizar pagamento</button>
             </div>
           </div>

@@ -9,7 +9,7 @@ return [
     'admin_username' => 'admin',
     'admin_password' => '',
     'app_secret' => '',
-    'umbrellapag_api_key' => '',
+    'blackcat_api_key' => '',
     'analytics_retention_days' => 90,
     'public_base_url' => 'https://seu-dominio.com.br',
 ];

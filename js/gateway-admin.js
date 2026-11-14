@@ -12,11 +12,9 @@ window.iniciarConexaoGateway = function (csrf, onActivated) {
   }
   async function refresh() {
     const data = await read(await fetch("/api/admin/gateway/status", { cache: "no-store" }));
-    status.textContent = !data.configured
-      ? "Configure UMBRELLAPAG_API_KEY em Production na Vercel e faça Redeploy para conectar a conta."
-      : data.active ? "Pix automático UmbrellaPag selecionado na loja" : "Verifique a conexão para ativar a UmbrellaPag";
+    status.textContent = data.active && data.configured ? "Pix automático selecionado na loja" : "Ativação do Pix automático";
     steps.replaceChildren();
-    for (const [ready, label] of [[data.configured, "Chave privada configurada no servidor"], [data.transportReady, "Servidor preparado para falar com a UmbrellaPag"], [data.active, "Gateway selecionado no checkout"]]) {
+    for (const [ready, label] of [[data.configured, "Chave privada configurada no servidor"], [data.transportReady, "Servidor preparado para falar com a BlackCat"], [data.active, "Gateway selecionado no checkout"]]) {
       const item = document.createElement("li");
       item.textContent = `${ready ? "✓" : "○"} ${label}`;
       item.dataset.ready = String(ready);
@@ -28,7 +26,7 @@ window.iniciarConexaoGateway = function (csrf, onActivated) {
   async function run(action) {
     if (busy) return;
     busy = true; test.disabled = true; activate.disabled = true;
-    result.textContent = action === "test" ? "Validando a conta na UmbrellaPag, sem gerar cobranças..." : "Ativando o Pix automático...";
+    result.textContent = action === "test" ? "Validando a conta na BlackCat, sem gerar cobranças..." : "Ativando o Pix automático...";
     try {
       const data = await read(await fetch(`/api/admin/gateway/${action}`, { method: "POST", headers: { "X-CSRF-Token": csrf } }));
       if (action === "activate") {
@@ -45,22 +43,5 @@ window.iniciarConexaoGateway = function (csrf, onActivated) {
   }
   test.onclick = () => run("test");
   activate.onclick = () => run("activate");
-  const inspect = document.getElementById("gatewayInspectButton");
-  inspect.onclick = async () => {
-    const output = document.getElementById("gatewayInspectResult");
-    const id = document.getElementById("gatewayInspectId").value.trim();
-    if (!/^[A-Za-z0-9_-]{1,120}$/.test(id)) {
-      output.textContent = "Copie o ID completo da transação no painel da UmbrellaPag.";
-      return;
-    }
-    inspect.disabled = true;
-    output.textContent = "Consultando a transação, sem gerar cobrança...";
-    try {
-      const { data } = await read(await fetch(`/api/admin/gateway/transactions/${encodeURIComponent(id)}`, { cache: "no-store" }));
-      const amount = (data.amount / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-      output.textContent = `Situação: ${data.status}. Valor: ${amount}. Motivo: ${data.reason}`;
-    } catch (error) { output.textContent = error.message; }
-    finally { inspect.disabled = false; }
-  };
   refresh().catch(error => { status.textContent = error.message; });
 };

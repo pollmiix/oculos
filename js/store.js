@@ -853,7 +853,7 @@ async function gerarCobrancaGateway(dados) {
     pedidoAtual = {
       id: String(charge.transactionId),
       transactionId: String(charge.transactionId),
-      gateway: "umbrellapag",
+      gateway: "blackcat",
       cliente: dados,
       itens: carrinho.map((item) => ({ ...item })),
       total,
@@ -937,7 +937,7 @@ async function confirmarPagamento() {
     alert("Gere o PIX antes de confirmar.");
     return;
   }
-  if (pedidoAtual.gateway === "umbrellapag") {
+  if (pedidoAtual.gateway === "blackcat") {
     const botao = $("#btnPago");
     const statusPagamento = $("#gatewayPaymentStatus");
     botao.disabled = true;
