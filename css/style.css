@@ -3561,3 +3561,8 @@ body.produto-page { background:#fff; color:#111; }
  .produto-page .product-demo-video { aspect-ratio:298 / 135; max-height:none; }
  .produto-page .product-demo-video video { object-fit:contain; }
 }
+
+/* O pagamento ocupa toda a largura e continua rolando sem barra interna visivel. */
+.storefront-page .checkout.pix-gerado .checkout-body { width:100%; scrollbar-width:none; }
+.storefront-page .checkout.pix-gerado .checkout-body::-webkit-scrollbar { display:none; }
+.storefront-page .checkout.pix-gerado .checkout-summary-column { max-width:760px; margin-inline:auto; }
