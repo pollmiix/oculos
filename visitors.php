@@ -68,6 +68,8 @@ function visitor_list(int $page, string $filter = ''): array
         'blocked' => 'b.ip_address IS NOT NULL',
         default => '1=1',
     };
+    $cutoff = panel_activity_cutoff();
+    $where = '(' . $where . ') AND v.last_seen>' . $cutoff;
     $join = ' FROM visitor_sessions v LEFT JOIN visitor_ip_blocks b ON b.ip_address=v.ip_address';
     $total = (int)$pdo->query('SELECT COUNT(*)' . $join . ' WHERE ' . $where)->fetchColumn();
     $pages = max(1, (int)ceil($total / 25));
@@ -89,9 +91,9 @@ function visitor_list(int $page, string $filter = ''): array
         unset($row['blocked_ip'], $row['items_json']);
     }
     unset($row);
-    $online = (int)$pdo->query('SELECT COUNT(*)' . $join . ' WHERE v.last_seen>=' . (time() - 10) . ' AND b.ip_address IS NULL')->fetchColumn();
+    $online = (int)$pdo->query('SELECT COUNT(*)' . $join . ' WHERE v.last_seen>' . $cutoff . ' AND v.last_seen>=' . (time() - 10) . ' AND b.ip_address IS NULL')->fetchColumn();
     return ['visits' => $rows, 'page' => $page, 'pages' => $pages, 'total' => $total,
-        'summary' => ['visits' => (int)$pdo->query('SELECT COUNT(*) FROM visitor_sessions')->fetchColumn(),
+        'summary' => ['visits' => (int)$pdo->query('SELECT COUNT(*) FROM visitor_sessions WHERE last_seen>' . $cutoff)->fetchColumn(),
             'online' => $online, 'blocked' => (int)$pdo->query('SELECT COUNT(*) FROM visitor_ip_blocks')->fetchColumn()], 'serverTime' => time()];
 }
 

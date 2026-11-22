@@ -523,6 +523,28 @@ function panel_orders_condition(): string
     return 'NOT EXISTS (SELECT 1 FROM order_panel_archive WHERE order_id=orders.id)';
 }
 
+function panel_activity_cutoff(): int
+{
+    $query = db()->prepare('SELECT `value` FROM settings WHERE `key`=?');
+    $query->execute(['panel_activity_cutoff']);
+    return max(0, (int)($query->fetchColumn() ?: 0));
+}
+function clear_dashboard(): never
+{
+    $session = require_admin(true, ['owner']);
+    $pdo = db(); $pdo->beginTransaction();
+    try {
+        $now = time();
+        $query = $pdo->prepare('INSERT IGNORE INTO order_panel_archive(order_id,archived_at) SELECT id,? FROM orders');
+        $query->execute([$now]);
+        $query = $pdo->prepare('INSERT INTO settings(`key`,`value`,updated_at) VALUES(?,?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`),updated_at=VALUES(updated_at)');
+        $query->execute(['panel_activity_cutoff', (string)$now, $now]);
+        audit((int)$session['admin_id'], 'dashboard_cleared', 'dashboard'); $pdo->commit();
+    } catch (Throwable $error) {
+        if ($pdo->inTransaction()) $pdo->rollBack(); throw $error;
+    }
+    respond(200, ['success' => true]);
+}
 function archive_panel_orders(): never
 {
     $session = require_admin(true, ['owner']);
@@ -607,7 +629,8 @@ function dashboard(int $days): array
     $query->execute([$start]);
     $orders = $query->fetch();
     $visitorsQuery = $pdo->prepare('SELECT COUNT(DISTINCT session_id) FROM events WHERE happened_at>=?');
-    $visitorsQuery->execute([$start]);
+    $activityStart = max($start, panel_activity_cutoff() + 1);
+    $visitorsQuery->execute([$activityStart]);
     $visitors = (int)$visitorsQuery->fetchColumn();
     $store = store_value() ?? [];
     $products = $store['produtos'] ?? [];
@@ -615,7 +638,7 @@ function dashboard(int $days): array
     $salesQuery = $pdo->prepare("SELECT DATE_FORMAT(FROM_UNIXTIME(created_at),'%Y-%m-%d') AS day,SUM(CASE WHEN payment_status='paid' THEN total_cents ELSE 0 END) AS cents,COUNT(*) AS orders FROM orders WHERE created_at>=? AND {$visibleOrders} GROUP BY day ORDER BY day");
     $salesQuery->execute([$start]);
     $trafficQuery = $pdo->prepare("SELECT DATE_FORMAT(FROM_UNIXTIME(happened_at),'%Y-%m-%d') AS day,COUNT(DISTINCT session_id) AS visitors,COUNT(*) AS views FROM events WHERE happened_at>=? GROUP BY day ORDER BY day");
-    $trafficQuery->execute([$start]);
+    $trafficQuery->execute([$activityStart]);
     $customers = (int)$pdo->query("SELECT COUNT(DISTINCT COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(customer_json,'$.email')),''),NULLIF(JSON_UNQUOTE(JSON_EXTRACT(customer_json,'$.phone')),''))) FROM orders WHERE {$visibleOrders}")->fetchColumn();
     $paid = (int)($orders['paid'] ?? 0);
     return ['revenueCents' => (int)($orders['revenue'] ?? 0), 'orders' => (int)$orders['n'],
@@ -630,7 +653,7 @@ function analytics_summary(int $start, int $end, array $filters): array
     $pdo = db();
     $columns = ['page' => 'page_path', 'product' => 'product_id', 'source' => 'source', 'device' => 'device'];
     $where = ['happened_at BETWEEN ? AND ?'];
-    $params = [$start, $end];
+    $params = [max($start, panel_activity_cutoff() + 1), $end];
     foreach ($columns as $key => $column) {
         $value = substr((string)($filters[$key] ?? ''), 0, 180);
         if ($value !== '') {
@@ -802,6 +825,9 @@ function route_request(): void
         require_admin();
         $days = filter_var($_GET['days'] ?? 30, FILTER_VALIDATE_INT);
         respond(200, dashboard($days === false ? 30 : $days));
+    }
+    if ($method === 'POST' && $path === '/api/admin/dashboard/clear') {
+        clear_dashboard();
     }
     if ($method === 'GET' && $path === '/api/admin/orders') {
         require_admin(false, ['owner']);

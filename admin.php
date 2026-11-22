@@ -12,7 +12,7 @@ header('Content-Type: text/html; charset=utf-8');
   <title>Painel administrativo · Vemari Ótica</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/admin.css?v=20261014b">
-  <link rel="stylesheet" href="css/admin-layout.css?v=20261030visits">
+  <link rel="stylesheet" href="css/admin-layout.css?v=20261122clear">
 </head>
 <body>
   <div class="admin" id="app"></div>
@@ -22,9 +22,9 @@ header('Content-Type: text/html; charset=utf-8');
   <script src="js/config.js?v=20261030fixes"></script>
   <script src="js/pix.js"></script>
   <script src="js/admin-visitors.js?v=20261030fixes"></script>
-  <script src="js/admin-layout.js?v=20261030visits"></script>
-  <script src="js/gateway-admin.js?v=20261122pingupag"></script>
+  <script src="js/admin-layout.js?v=20261122clear"></script>
+  <script src="js/gateway-admin.js?v=20261122clear"></script>
   <script src="js/gateway-test.js?v=20261122pingupag"></script>
-  <script src="js/admin.js?v=20261122pingupag"></script>
+  <script src="js/admin.js?v=20261122clear"></script>
 </body>
 </html>

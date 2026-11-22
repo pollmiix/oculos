@@ -294,7 +294,7 @@ function renderPainel() {
     renderPainel();
   };
   renderProdutos();
-  window.organizarPainel({ estado, role: adminRole, report: carregarRelatorioAdmin, request: adminFetch, money: dinheiroAdmin, escape: esc, changeOrders: alterarPedidosPainel, changeVisitors: alterarVisitaPainel });
+  window.organizarPainel({ estado, role: adminRole, report: carregarRelatorioAdmin, request: adminFetch, money: dinheiroAdmin, escape: esc, changeOrders: alterarPedidosPainel, changeVisitors: alterarVisitaPainel, clearDashboard: limparPainel });
   if (adminRole === "owner") window.iniciarConexaoGateway(adminCsrfToken, () => {
     estado.pagamento.metodo = "gateway";
     estado.pagamento.gateway.provedor = "PinguPag";
@@ -577,6 +577,14 @@ async function adminFetch(path) {
   const response = await window.fetchLoja(path, { cache: "no-store" });
   if (!response.ok) throw new Error("Não foi possível carregar este relatório.");
   return response.json();
+}
+
+async function limparPainel() {
+  const response = await fetch('/api/admin/dashboard/clear', { method: 'POST', headers: { 'X-CSRF-Token': adminCsrfToken } });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || 'Nao foi possivel limpar o painel.');
+  await carregarIndicadoresAdmin(Number(document.getElementById('dashboardPeriod')?.value || 30));
+  window.dispatchEvent(new Event('panel-orders-updated'));
 }
 
 async function alterarVisitaPainel(data) {

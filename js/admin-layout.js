@@ -14,7 +14,7 @@
   };
   const icon = key => `<svg viewBox="0 0 24 24" aria-hidden="true">${icons[key] || icons.overview}</svg>`;
 
-  window.organizarPainel = ({ estado, role, report, request, money, escape: esc, changeOrders, changeVisitors }) => {
+  window.organizarPainel = ({ estado, role, report, request, money, escape: esc, changeOrders, changeVisitors, clearDashboard }) => {
     events?.abort();
     events = new AbortController();
     const signal = events.signal;
@@ -92,6 +92,18 @@
     });
     const visitorList = owner ? window.criarListaVisitas({ request, mutate: changeVisitors, escape: esc, signal }) : null;
     if (visitorList) overview.insertBefore(visitorList.element, details);
+    if (owner) {
+      const button = document.createElement('button');
+      button.type = 'button'; button.className = 'dashboard-clear-all'; button.textContent = 'Limpar painel';
+      button.addEventListener('click', async () => {
+        if (!window.confirm('Limpar visitas, indicadores e pedidos exibidos no painel? Produtos, pagamentos e bloqueios de IP serao mantidos. Os pedidos poderao ser restaurados.')) return;
+        button.disabled = true;
+        try { await clearDashboard(); visitorList?.setActive(true); }
+        catch (error) { window.alert(error.message); }
+        finally { button.disabled = false; }
+      }, { signal });
+      overview.querySelector('.admin-data-heading').append(button);
+    }
     const titles = { overview: "Visão geral", orders: "Vendas", catalog: "Produtos", pix: "Pix", gateway: "Gateway", customers: "Clientes", analytics: "Relatórios de visitas", visits: "Lista de visitas", settings: "Configurações", accounts: "Acessos", privacy: "Privacidade", products: "Estoque e vendas" };
     const reportKeys = ["orders", "customers", "analytics", "products"];
     const allowed = new Set(entries.map(([key]) => key));

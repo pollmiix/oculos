@@ -194,3 +194,7 @@ body { background: #0b0b0d; color: #eee; }
   .admin-shell .prod-summary-meta { grid-column: 2; text-align: left; }
 }
 @media(prefers-reduced-motion:reduce) { .dashboard-sidebar { transition: none; } }
+
+.dashboard-clear-all { margin-left:auto; padding:5px 8px; border:1px solid #34343a; border-radius:5px; background:transparent; color:#aaa; font:inherit; font-size:11px; cursor:pointer; }
+.dashboard-clear-all:hover { color:#fff; border-color:#777; }
+.dashboard-clear-all:disabled { opacity:.5; cursor:wait; }
