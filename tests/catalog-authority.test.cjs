@@ -133,7 +133,7 @@ vm.runInContext(fs.readFileSync(path.join(__dirname, '../js/config.js'), 'utf8')
     assert.equal(product.precoPix, context.precoComDescontoPix(product));
   }
   assert.equal(context.percentualDescontoPixProduto(smartDefaults[0]), 10);
-  savedStore = JSON.stringify({ versaoReducaoPrecos: 2, versaoPrecosMasculinos: 1, categorias: ['Todos'], produtos: maleDefaults.map(p => ({ ...p, preco: 999, precoPix: 999, aplicarDescontoPix: false })) });
+  savedStore = JSON.stringify({ versaoReducaoPrecos: 2, versaoPrecosMasculinos: 2, categorias: ['Todos'], produtos: maleDefaults.map(p => ({ ...p, preco: 999, precoPix: 999, aplicarDescontoPix: false })) });
   for (let reload = 0; reload < 2; reload++) {
     const males = context.carregarLojaConfigurada().produtos.filter(p => p.categoria === 'Armações masculinas');
     assert.equal(males.length, 47);
@@ -153,7 +153,7 @@ vm.runInContext(fs.readFileSync(path.join(__dirname, '../js/config.js'), 'utf8')
     assert.equal(product.precoPix, context.precoComDescontoPix(product));
   }
   assert.equal(context.percentualDescontoPixProduto(smartDefaults[0]), 10);
-  savedStore = JSON.stringify({ versaoReducaoPrecos: 2, versaoPrecosOutros: 1, categorias: ['Todos'], produtos: otherDefaults.map(p => ({ ...p, preco: 999, precoPix: 999, aplicarDescontoPix: false })) });
+  savedStore = JSON.stringify({ versaoReducaoPrecos: 2, versaoPrecosOutros: 2, categorias: ['Todos'], produtos: otherDefaults.map(p => ({ ...p, preco: 999, precoPix: 999, aplicarDescontoPix: false })) });
   for (let reload = 0; reload < 2; reload++) {
     const others = context.carregarLojaConfigurada().produtos.filter(p => p.categoria === 'Outros óculos de grau');
     assert.equal(others.length, 20);

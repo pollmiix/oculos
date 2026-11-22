@@ -34,8 +34,8 @@ window.LOJA_PADRAO = {
   versaoPrecosInteligentes: 3,
   versaoDescontoPixInteligentes: 2,
   versaoPrecosFemininos: 3,
-  versaoPrecosMasculinos: 2,
-  versaoPrecosOutros: 2,
+  versaoPrecosMasculinos: 3,
+  versaoPrecosOutros: 3,
   versaoCatalogo: 3,
   loja: {
     nome: "Vemari Ótica",
@@ -704,7 +704,7 @@ window.carregarLojaConfigurada = function () {
     window.armazenamentoLoja.salvar(chave, JSON.stringify(dadosSalvos));
   }
 
-  if ((Number(dadosSalvos.versaoPrecosMasculinos) || 0) < 2) {
+  if ((Number(dadosSalvos.versaoPrecosMasculinos) || 0) < 3) {
     const precos = new Map(window.LOJA_PADRAO.produtos.filter(p => p.categoria === "Armações masculinas").map(p => [String(p.id), p.preco]));
     if (Array.isArray(dadosSalvos.produtos)) {
       dadosSalvos.produtos.forEach((produto) => {
@@ -714,11 +714,11 @@ window.carregarLojaConfigurada = function () {
         produto.precoPix = window.precoComDescontoPix(produto);
       });
     }
-    dadosSalvos.versaoPrecosMasculinos = 2;
+    dadosSalvos.versaoPrecosMasculinos = 3;
     window.armazenamentoLoja.salvar(chave, JSON.stringify(dadosSalvos));
   }
 
-  if ((Number(dadosSalvos.versaoPrecosOutros) || 0) < 2) {
+  if ((Number(dadosSalvos.versaoPrecosOutros) || 0) < 3) {
     const precos = new Map(window.LOJA_PADRAO.produtos.filter(p => p.categoria === "Outros óculos de grau").map(p => [String(p.id), p.preco]));
     if (Array.isArray(dadosSalvos.produtos)) {
       dadosSalvos.produtos.forEach((produto) => {
@@ -728,7 +728,7 @@ window.carregarLojaConfigurada = function () {
         produto.precoPix = window.precoComDescontoPix(produto);
       });
     }
-    dadosSalvos.versaoPrecosOutros = 2;
+    dadosSalvos.versaoPrecosOutros = 3;
     window.armazenamentoLoja.salvar(chave, JSON.stringify(dadosSalvos));
   }
 
