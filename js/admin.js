@@ -174,14 +174,14 @@ function renderPainel() {
       </div>
 
       <div id="gatewaySettings" hidden>
-        <h2>Gateway BlackCat</h2>
+        <h2>Gateway PinguPag</h2>
         <div class="gateway-connection-card">
           <p id="gatewayConnectionStatus" role="status">Conferindo a configuração do servidor...</p>
           <ul id="gatewayConnectionSteps"></ul>
           <div class="gateway-connection-actions"><button class="btn btn-ghost" id="testGateway" type="button">Verificar conexão</button><button class="btn btn-verde" id="activateGateway" type="button" disabled>Ativar Pix automático</button></div>
           <p id="gatewayConnectionResult" role="status"></p>
         </div>
-        <section class="gateway-charge-test" aria-labelledby="gatewayChargeTitle">
+        <section class="gateway-charge-test" aria-labelledby="gatewayChargeTitle" hidden>
           <div class="gateway-charge-intro">
             <span class="gateway-charge-icon" aria-hidden="true">▦</span>
             <div><h3 id="gatewayChargeTitle">Testar QR Code BlackCat</h3>
@@ -213,7 +213,7 @@ function renderPainel() {
           </div>
         </section>
         <div class="grid2">
-          <label>Provedor<input id="gateway_provedor" value="${esc(estado.pagamento.gateway.provedor || "BlackCat")}" readonly></label>
+          <label>Provedor<input id="gateway_provedor" value="${esc(estado.pagamento.gateway.provedor || "PinguPag")}" readonly></label>
         </div>
       </div>
 
@@ -328,14 +328,14 @@ function renderPainel() {
   window.organizarPainel({ estado, role: adminRole, report: carregarRelatorioAdmin, request: adminFetch, money: dinheiroAdmin, escape: esc, changeOrders: alterarPedidosPainel, changeVisitors: alterarVisitaPainel });
   if (adminRole === "owner") window.iniciarConexaoGateway(adminCsrfToken, () => {
     estado.pagamento.metodo = "gateway";
-    estado.pagamento.gateway.provedor = "BlackCat";
+    estado.pagamento.gateway.provedor = "PinguPag";
     estado.pagamento.gateway.ativo = true;
-    document.getElementById("gateway_provedor").value = "BlackCat";
+    document.getElementById("gateway_provedor").value = "PinguPag";
     document.querySelector('input[name="metodoPagamento"][value="gateway"]').checked = true;
     atualizarConfiguracaoPagamento();
     document.getElementById("adminSaveHint").textContent = "Gateway ativado no servidor";
   });
-  if (adminRole === "owner") window.iniciarTesteGateway(adminCsrfToken);
+  
 }
 
 function lerCamposLoja() {
@@ -675,7 +675,7 @@ async function carregarRelatorioAdmin(view) {
     if (view === "orders") {
       const { orders } = await adminFetch("/api/admin/orders");
       const paymentLabels = { pending: "Aguardando pagamento", reported: "Pagamento informado", paid: "Pago", cancelled: "Cancelado", refunded: "Reembolsado" };
-      const paymentMethods = { pix: "PIX", pix_manual: "PIX manual", blackcat: "BlackCat", umbrellapag: "UmbrellaPag (historico)" };
+      const paymentMethods = { pix: "PIX", pix_manual: "PIX manual", blackcat: "PinguPag", umbrellapag: "UmbrellaPag (historico)" };
       target.innerHTML = orders.length ? `<div class="order-list">${orders.map((o) => {
         const customer = o.customer || {};
         const shipping = customer.shipping || {};

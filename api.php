@@ -11,6 +11,7 @@ require_once __DIR__ . '/product-identifiers.php';
 require_once __DIR__ . '/store-policies.php';
 require_once __DIR__ . '/store-pricing.php';
 require_once __DIR__ . '/blackcat-gateway.php';
+require_once __DIR__ . '/pingupag-gateway.php';
 require_once __DIR__ . '/blackcat-test-charge.php';
 require_once __DIR__ . '/visitors.php';
 
@@ -350,8 +351,9 @@ function send_merchant_feed(): never
 
 function safe_store(array $store): array
 {
-    $activeGateway = blackcat_active($store);
-    $store['pagamento']['gateway'] = ['provedor' => 'BlackCat', 'ativo' => $activeGateway];
+    $activeGateway = pingu_active($store) || blackcat_active($store);
+    $provider = pingu_active($store) ? 'PinguPag' : (blackcat_active($store) ? 'BlackCat' : 'PinguPag');
+    $store['pagamento']['gateway'] = ['provedor' => $provider, 'ativo' => $activeGateway];
     $store = confirmed_store_policies($store);
     unset($store['senhaAdmin']);
     if (isset($store['pagamento']['gateway']) && is_array($store['pagamento']['gateway'])) {
@@ -766,14 +768,15 @@ function route_request(): void
         send_merchant_feed();
     }
     if ($method === 'GET' && $path === '/api/health') {
-        respond(200, ['ok' => true, 'paymentConfigured' => config_value('blackcat_api_key') !== '' && blackcat_active(store_value()),
+        respond(200, ['ok' => true, 'paymentConfigured' => ((config_value('pingupag_api_key') !== '' && pingu_active(store_value())) || (config_value('blackcat_api_key') !== '' && blackcat_active(store_value()))),
             'adminConfigured' => (int)$pdo->query('SELECT COUNT(*) FROM admins')->fetchColumn() > 0]);
     }
-    if ($method === 'GET' && $path === '/api/admin/gateway/status') blackcat_admin_status();
-    if ($method === 'POST' && $path === '/api/admin/gateway/test') blackcat_admin_connect(false);
-    if ($method === 'POST' && $path === '/api/admin/gateway/activate') blackcat_admin_connect(true);
+    if ($method === 'GET' && $path === '/api/admin/gateway/status') pingu_admin_status();
+    if ($method === 'POST' && $path === '/api/admin/gateway/test') pingu_admin_connect(false);
+    if ($method === 'POST' && $path === '/api/admin/gateway/activate') pingu_admin_connect(true);
     if ($method === 'POST' && $path === '/api/admin/gateway/charges') blackcat_test_create();
     if ($method === 'GET' && preg_match('#^/api/admin/gateway/charges/([a-f0-9-]{36})$#D', $path, $testMatch)) blackcat_test_status($testMatch[1]);
+    if ($method === 'POST' && $path === '/api/webhooks/pingupag') pingu_webhook();
     if ($method === 'POST' && $path === '/api/webhooks/blackcat') blackcat_webhook();
     if ($method === 'POST' && $path === '/api/webhooks/blackcat-test') blackcat_test_webhook();
     if ($method === 'GET' && $path === '/api/store') {
@@ -792,6 +795,9 @@ function route_request(): void
             'admin' => ['id' => (int)$session['admin_id'], 'username' => $session['username'], 'role' => $session['role']]]);
     }
     if ($method === 'GET' && preg_match('#^/api/payments/([A-Za-z0-9_-]{1,100})$#', $path, $match)) {
+        $providerQuery = db()->prepare('SELECT payment_method FROM orders WHERE transaction_id=?');
+        $providerQuery->execute([$match[1]]);
+        if ($providerQuery->fetchColumn() === 'pingupag') pingu_payment_status($match[1]);
         payment_status($match[1]);
     }
     if ($method === 'GET' && $path === '/api/admin/dashboard') {
@@ -882,7 +888,7 @@ function route_request(): void
         if (isset($value['pagamento']) && (!is_array($value['pagamento']) || !in_array($value['pagamento']['metodo'] ?? null, ['pix', 'gateway'], true))) {
             throw new InvalidArgumentException('Escolha PIX ou gateway como forma de pagamento.');
         }
-        if (($value['pagamento']['metodo'] ?? '') === 'gateway' && config_value('blackcat_api_key') === '') {
+        if (($value['pagamento']['metodo'] ?? '') === 'gateway' && config_value('pingupag_api_key') === '') {
             throw new InvalidArgumentException('Configure a chave privada na Vercel e verifique a conexão na área Gateway antes de ativar.');
         }
         $query = $pdo->prepare('INSERT INTO settings(`key`,`value`,updated_at) VALUES(?,?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`),updated_at=VALUES(updated_at)');
@@ -928,6 +934,7 @@ function route_request(): void
         report_manual_order_payment($match[1]);
     }
     if ($method === 'POST' && in_array($path, ['/api/payments/blackcat', '/api/payments/pix'], true)) {
+        if (pingu_active(store_value())) create_pingupag_payment();
         create_blackcat_payment();
     }
     respond(404, ['error' => 'Não encontrado.']);
@@ -1129,6 +1136,78 @@ function report_manual_order_payment(string $orderId): never
         }
     }
     respond(200, ['success' => true, 'paymentStatus' => 'reported']);
+}
+
+function create_pingupag_payment(): never
+{
+    if (rate_limited('create-payment', 8, 60)) {
+        respond(429, ['error' => 'Muitas tentativas. Aguarde um minuto e tente novamente.']);
+    }
+    $apiKey = config_value('pingupag_api_key');
+    if ($apiKey === '') {
+        respond(503, ['error' => 'O gateway não está configurado no servidor.']);
+    }
+    $store = store_value();
+    if (!pingu_active($store)) {
+        respond(409, ['error' => 'A loja ainda não ativou o gateway no painel sincronizado.']);
+    }
+    $data = json_body(131072);
+    $customer = $data['customer'] ?? null;
+    $shipping = $data['shipping'] ?? null;
+    $requested = $data['items'] ?? null;
+    if (!is_array($customer) || !is_array($shipping) || !is_array($requested) || !$requested || count($requested) > 50) {
+        throw new InvalidArgumentException('Preencha os dados do cliente e o endereço de envio.');
+    }
+    $name = required_text($customer['name'] ?? null, 'nome', 120);
+    $email = required_text($customer['email'] ?? null, 'e-mail', 254);
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        throw new InvalidArgumentException('Informe um e-mail válido.');
+    }
+    $phone = preg_replace('/\D/', '', (string)($customer['phone'] ?? ''));
+    if (strlen($phone) < 10 || strlen($phone) > 13) {
+        throw new InvalidArgumentException('Informe um telefone válido com DDD.');
+    }
+    $document = preg_replace('/\D/', '', (string)($customer['document']['number'] ?? ''));
+    if (strlen($document) !== 11) {
+        throw new InvalidArgumentException('Informe um CPF válido para o pagamento.');
+    }
+    $address = ['name' => $name,
+        'street' => required_text($shipping['street'] ?? null, 'rua', 200),
+        'number' => required_text($shipping['number'] ?? null, 'número', 30),
+        'complement' => substr(trim((string)($shipping['complement'] ?? '')), 0, 120),
+        'neighborhood' => required_text($shipping['neighborhood'] ?? null, 'bairro', 120),
+        'city' => required_text($shipping['city'] ?? null, 'cidade', 120),
+        'state' => strtoupper(required_text($shipping['state'] ?? null, 'estado', 2)),
+        'zipCode' => preg_replace('/\D/', '', (string)($shipping['zipCode'] ?? ''))];
+    if (strlen($address['state']) !== 2 || strlen($address['zipCode']) !== 8) {
+        throw new InvalidArgumentException('Confira o estado e o CEP do endereço de entrega.');
+    }
+    [$items, $total, $saleItems] = create_order_items($requested, $store, true);
+    $externalRef = 'MN' . strtoupper(bin2hex(random_bytes(12)));
+    $publicBase = rtrim(config_value('public_base_url', 'https://vemariotica.online'), '/');
+    if (parse_url($publicBase, PHP_URL_SCHEME) !== 'https') throw new RuntimeException('PUBLIC_BASE_URL must use HTTPS.');
+    $payload = ['amount' => $total, 'description' => 'Pedido Vemari Otica', 'reference' => $externalRef,
+        'source' => 'api_externa', 'customer' => ['name' => $name, 'email' => $email, 'phone' => $phone, 'document' => $document],
+        'address' => ['street' => $address['street'], 'number' => $address['number'], 'complement' => $address['complement'], 'neighborhood' => $address['neighborhood'], 'city' => $address['city'], 'state' => $address['state'], 'zipcode' => $address['zipCode']],
+        'postback_url' => $publicBase . '/api/webhooks/pingupag?ref=' . rawurlencode($externalRef) . '&token=' . blackcat_callback_token($externalRef, config_value('app_secret'))];
+    try { [$status, $response] = pingu_call('transaction', 'POST', $payload); }
+    catch (Throwable $e) { respond(502, ['error' => 'Nao foi possivel gerar a cobranca. Consulte a loja antes de tentar novamente.']); }
+    $id = (string)($response['transaction_id'] ?? ''); $pix = trim((string)($response['qr_code'] ?? ''));
+    if (!in_array($status, [200, 201], true) || ($response['status'] ?? '') !== 'success' || !preg_match('/^[A-Za-z0-9_-]{1,100}$/D', $id) || (int)($response['amount'] ?? -1) !== $total || $pix === '' || (string)($response['id'] ?? '') !== $externalRef) respond(502, ['error' => 'A PinguPag nao confirmou os dados da cobranca. Consulte a loja antes de tentar novamente.']);
+    try {
+        db()->beginTransaction();
+        $insert = db()->prepare('INSERT INTO payment_transactions(transaction_id,amount,external_ref,created_at) VALUES(?,?,?,?)');
+        $insert->execute([$id, $total, $externalRef, time()]);
+        create_order($externalRef, $id, 'awaiting_payment', 'pending', 'pingupag', $total,
+            ['name' => $name, 'email' => $email, 'phone' => $phone, 'shipping' => $address], $items, analytics_session($data['analyticsSessionId'] ?? null), $pix);
+        db()->commit();
+    } catch (Throwable $e) {
+        if (db()->inTransaction()) db()->rollBack();
+        error_log('PinguPag charge created but order persistence failed: ' . $e->getMessage());
+        respond(500, ['error' => 'Cobranca criada, mas pedido nao registrado. Entre em contato com a loja antes de pagar.']);
+    }
+    respond(201, ['success' => true, 'data' => ['transactionId' => $id, 'status' => 'PENDING', 'amount' => $total,
+        'paymentData' => ['copyPaste' => $pix, 'qrCodeBase64' => $response['qr_code_base64'] ?? null, 'expiresAt' => $response['expires_at'] ?? null]]]);
 }
 
 function create_blackcat_payment(): never

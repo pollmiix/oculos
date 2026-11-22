@@ -10,6 +10,7 @@ return [
     'admin_password' => '',
     'app_secret' => '',
     'blackcat_api_key' => '',
+    'pingupag_api_key' => '',
     'analytics_retention_days' => 90,
     'public_base_url' => 'https://seu-dominio.com.br',
 ];
