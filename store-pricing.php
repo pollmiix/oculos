@@ -30,7 +30,7 @@ function reduced_store_prices(array $store): array
 
 function fixed_smart_product_prices(array $store): array
 {
-    if ((int)($store['versaoPrecosInteligentes'] ?? 0) >= 2) {
+    if ((int)($store['versaoPrecosInteligentes'] ?? 0) >= 3) {
         return $store;
     }
     $prices = json_decode(file_get_contents(__DIR__ . '/smart-product-prices.json'), true, 512, JSON_THROW_ON_ERROR);
@@ -41,13 +41,13 @@ function fixed_smart_product_prices(array $store): array
                 continue;
             }
             $product['preco'] = $price;
-            $product['precoPix'] = $price;
+            $product['precoPix'] = round($price * 0.9, 2, PHP_ROUND_HALF_UP);
             $product['precoPromocional'] = $price;
-            $product['aplicarDescontoPix'] = false;
+            $product['aplicarDescontoPix'] = true;
         }
         unset($product);
     }
-    $store['versaoPrecosInteligentes'] = 2;
+    $store['versaoPrecosInteligentes'] = 3;
     return $store;
 }
 

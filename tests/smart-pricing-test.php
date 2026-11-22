@@ -3,7 +3,7 @@ declare(strict_types=1);
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 require dirname(__DIR__) . '/store-pricing.php';
 $prices = json_decode(file_get_contents(dirname(__DIR__) . '/smart-product-prices.json'), true, 512, JSON_THROW_ON_ERROR);
-if (count($prices) !== 16 || count(array_unique($prices)) !== 16 || min($prices) !== 895.24 || max($prices) !== 919.85) {
+if (count($prices) !== 16 || count(array_unique($prices)) !== 16 || min($prices) !== 102.98 || max($prices) !== 108.97) {
     throw new RuntimeException('Expected sixteen distinct prices in the requested range.');
 }
 $products = [];
@@ -18,10 +18,10 @@ foreach ($result['produtos'] as $i => $product) {
         if ($product !== $other) throw new RuntimeException('Other collections must remain unchanged.');
         continue;
     }
-    foreach (['preco', 'precoPix', 'precoPromocional'] as $field) {
+    foreach (['preco', 'precoPromocional'] as $field) {
         if ($product[$field] !== $prices[$product['id']]) throw new RuntimeException('Incorrect fixed price.');
     }
-    if ($product['aplicarDescontoPix'] !== false || $product['estoque'] !== 3 || $product['antigo'] !== 2500) {
+    if ($product['aplicarDescontoPix'] !== true || $product['precoPix'] !== round($product['preco'] * 0.9, 2, PHP_ROUND_HALF_UP) || $product['estoque'] !== 3 || $product['antigo'] !== 2500) {
         throw new RuntimeException('Final prices, stock and original prices must be preserved.');
     }
 }
