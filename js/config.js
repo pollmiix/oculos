@@ -33,7 +33,7 @@ window.LOJA_PADRAO = {
   versaoReducaoPrecos: 2,
   versaoPrecosInteligentes: 3,
   versaoDescontoPixInteligentes: 2,
-  versaoPrecosFemininos: 2,
+  versaoPrecosFemininos: 3,
   versaoPrecosMasculinos: 2,
   versaoPrecosOutros: 2,
   versaoCatalogo: 3,
@@ -690,7 +690,7 @@ window.carregarLojaConfigurada = function () {
     window.armazenamentoLoja.salvar(chave, JSON.stringify(dadosSalvos));
   }
 
-  if ((Number(dadosSalvos.versaoPrecosFemininos) || 0) < 2) {
+  if ((Number(dadosSalvos.versaoPrecosFemininos) || 0) < 3) {
     const precos = new Map(window.LOJA_PADRAO.produtos.filter(p => p.categoria === "Armações femininas").map(p => [String(p.id), p.preco]));
     if (Array.isArray(dadosSalvos.produtos)) {
       dadosSalvos.produtos.forEach((produto) => {
@@ -700,7 +700,7 @@ window.carregarLojaConfigurada = function () {
         produto.precoPix = window.precoComDescontoPix(produto);
       });
     }
-    dadosSalvos.versaoPrecosFemininos = 2;
+    dadosSalvos.versaoPrecosFemininos = 3;
     window.armazenamentoLoja.salvar(chave, JSON.stringify(dadosSalvos));
   }
 
