@@ -774,8 +774,6 @@ function route_request(): void
     if ($method === 'GET' && $path === '/api/admin/gateway/status') pingu_admin_status();
     if ($method === 'POST' && $path === '/api/admin/gateway/test') pingu_admin_connect(false);
     if ($method === 'POST' && $path === '/api/admin/gateway/activate') pingu_admin_connect(true);
-    if ($method === 'POST' && $path === '/api/admin/gateway/charges') blackcat_test_create();
-    if ($method === 'GET' && preg_match('#^/api/admin/gateway/charges/([a-f0-9-]{36})$#D', $path, $testMatch)) blackcat_test_status($testMatch[1]);
     if ($method === 'POST' && $path === '/api/webhooks/pingupag') pingu_webhook();
     if ($method === 'POST' && $path === '/api/webhooks/blackcat') blackcat_webhook();
     if ($method === 'POST' && $path === '/api/webhooks/blackcat-test') blackcat_test_webhook();
